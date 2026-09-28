@@ -1,18 +1,19 @@
 ; =====================================================================
 ;  Kirill-Lotin - Word va Excel uchun o'rnatuvchi (NSIS 3)
 ;
-;  Yig'ish:  makensis installer/KirillLotin.nsi
+;  Yig'ish:  python3 installer/build_addins.py
+;            makensis installer/KirillLotin.nsi
 ;  Natija:   dist/KirillLotin-Setup.exe
 ;
 ;  O'rnatuvchi fayllarni %LOCALAPPDATA%\Programs\KirillLotin ga
-;  ochadi va install.ps1 ni ishga tushiradi. install.ps1 Word va
-;  Excel qo'shimchalarini yasab, STARTUP / XLSTART papkalariga
-;  joylaydi. Administrator huquqi kerak emas.
+;  ochadi va install.ps1 ni ishga tushiradi. install.ps1 tayyor
+;  qo'shimchalarni (addins\) Word STARTUP va Excel XLSTART
+;  papkalariga nusxalaydi. Administrator huquqi kerak emas.
 ; =====================================================================
 Unicode true
 
 !define APPNAME   "Kirill-Lotin"
-!define APPVER    "1.0.0"
+!define APPVER    "1.1.0"
 !define PUBLISHER "Kirill-Lotin"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\KirillLotin"
 
@@ -71,11 +72,11 @@ Var PowerShell
   ${EndIf}
 !macroend
 
-; Word va Excel yopilganini tekshirish
+; Word va Excel yopilganini tekshirish (tasklist - PowerShell'dan ancha tez)
 !macro CheckOfficeFn PREFIX
 Function ${PREFIX}CheckOffice
   retry:
-    nsExec::ExecToStack '"$PowerShell" -NoProfile -NonInteractive -Command "if (Get-Process WINWORD,EXCEL -ErrorAction SilentlyContinue) { exit 1 } else { exit 0 }"'
+    nsExec::ExecToStack '"$SYSDIR\cmd.exe" /c tasklist /NH /FI "IMAGENAME eq WINWORD.EXE" | find /I "WINWORD.EXE" >nul && exit 1 || tasklist /NH /FI "IMAGENAME eq EXCEL.EXE" | find /I "EXCEL.EXE" >nul && exit 1 || exit 0'
     Pop $0
     Pop $1
     ${If} $0 == 1
@@ -110,9 +111,12 @@ Section "Kirill-Lotin" SecMain
   File "..\src\KLExcel.bas"
   File "..\src\ThisWorkbook.vba"
   File "..\src\customUI.xml"
+  SetOutPath "$INSTDIR\addins"
+  File "..\addins\KirillLotin.dotm"
+  File "..\addins\KirillLotin.xlam"
   SetOutPath "$INSTDIR"
 
-  DetailPrint "Word va Excel qo'shimchalari yasalmoqda, bu 1-2 daqiqa davom etadi..."
+  DetailPrint "Word va Excel qo'shimchalari o'rnatilmoqda va tekshirilmoqda..."
   nsExec::ExecToLog '"$PowerShell" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$INSTDIR\install.ps1" -NoPause'
   Pop $0
 
@@ -148,6 +152,7 @@ Section "Uninstall"
   ${EndIf}
 
   RMDir /r "$INSTDIR\src"
+  RMDir /r "$INSTDIR\addins"
   Delete "$INSTDIR\install.ps1"
   Delete "$INSTDIR\uninstall.ps1"
   Delete "$INSTDIR\README.md"

@@ -13,7 +13,7 @@ Attribute VB_Name = "KLCore"
 Option Explicit
 
 Private Const APP_NAME As String = "KirillLotin"
-Public Const KL_VERSION As String = "1.0.0"
+Public Const KL_VERSION As String = "1.1.0"
 
 Private mReady As Boolean
 Private mAscii As Boolean            ' True: ' ishlatiladi, False: U+02BB / U+02BC
@@ -112,16 +112,22 @@ Public Sub KL_ShowAbout()
         vbInformation, KL_Title()
 End Sub
 
-' Lenta (Ribbon) uchun umumiy chaqiruvlar
-Public Sub KL_RibbonGetAscii(control As IRibbonControl, ByRef returnedVal)
+' O'rnatuvchi qo'shimcha ishlayotganini shu funksiya orqali tekshiradi
+Public Function KL_Ping() As String
+    KL_Ping = "OK " & KL_VERSION & " " & KL_CyrToLat(ChrW(&H428) & ChrW(&H430) & ChrW(&H4B3) & ChrW(&H430) & ChrW(&H440))
+End Function
+
+' Lenta (Ribbon) uchun umumiy chaqiruvlar.
+' control ning turi Object: Office kutubxonasiga havola kerak bo'lmasin.
+Public Sub KL_RibbonGetAscii(control As Object, ByRef returnedVal)
     returnedVal = KL_AsciiApostrophe()
 End Sub
 
-Public Sub KL_RibbonSetAscii(control As IRibbonControl, pressed As Boolean)
+Public Sub KL_RibbonSetAscii(control As Object, pressed As Boolean)
     KL_SetAsciiApostrophe pressed
 End Sub
 
-Public Sub KL_RibbonAbout(control As IRibbonControl)
+Public Sub KL_RibbonAbout(control As Object)
     KL_ShowAbout
 End Sub
 

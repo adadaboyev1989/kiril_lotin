@@ -16,8 +16,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Qoidalar testlari
-        run: python3 -m unittest discover -s tests -v
+      - name: Qoidalar va generator testlari
+        run: |
+          pip install olefile
+          python3 -m unittest discover -s tests -v
+
+      - name: Word va Excel qo'shimchalarini yasash
+        run: python3 installer/build_addins.py
 
       - name: NSIS ni o'rnatish
         run: sudo apt-get update && sudo apt-get install -y nsis
@@ -34,4 +39,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/KirillLotin-Setup.exe
+          files: |
+            dist/KirillLotin-Setup.exe
+            addins/KirillLotin.dotm
+            addins/KirillLotin.xlam

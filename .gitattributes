@@ -5,3 +5,5 @@
 *.bat -text
 *.exe binary
 *.ico binary
+*.dotm binary
+*.xlam binary

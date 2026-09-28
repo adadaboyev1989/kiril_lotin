@@ -15,7 +15,7 @@ O'rnatilgach, Word va Excel har safar ochilganda qo'shimcha avtomatik yuklanadi 
 | Tezkor tugmalar | Alt+Shift+L / Alt+Shift+K | Alt+Shift+L / Alt+Shift+K |
 | Formulalar | — | `=LOTINGA(A1)`, `=KIRILGA(A1)` |
 
-* **Alt+Shift+L** — Kirill → Lotin
+* **Alt+Shift+L** — Kirill → Lotin (Word da tugmalar qo'shimcha yuklanganda `AutoExec` makrosi orqali o'rnatiladi)
 * **Alt+Shift+K** — Lotin → Kirill
 * Havolalar (`https://...`, `www...`) va e-pochta manzillari kirillga o'girilmaydi.
 * **Sozlamalar → «Oddiy apostrof (')»**: belgilansa `o'`, `g'` oddiy `'` bilan yoziladi; aks holda rasmiy imlodagi `oʻ`, `gʻ` (U+02BB) va tutuq belgisi `ʼ` (U+02BC) ishlatiladi. Lotindan kirillga o'girishda barcha turdagi apostroflar (`'` `` ` `` `‘` `’` `ʻ` `ʼ`) tushuniladi.
@@ -45,13 +45,15 @@ Jimjit o'rnatish (bir nechta kompyuterga tarqatish uchun): `KirillLotin-Setup.ex
 
 O'rnatuvchi nima qiladi:
 
-* Word va Excel ni orqa fonda ishga tushirib, `src/` dagi VBA modullaridan `KirillLotin.dotm` (Word) va `KirillLotin.xlam` (Excel) fayllarini yasaydi, ularga lenta (`src/customUI.xml`) qo'shadi;
-* fayllarni Office avtomatik yuklaydigan papkalarga joylaydi:
+* `addins/` papkasidagi tayyor `KirillLotin.dotm` (Word) va `KirillLotin.xlam` (Excel) fayllarini Office avtomatik yuklaydigan papkalarga nusxalaydi:
   * `%APPDATA%\Microsoft\Word\STARTUP\KirillLotin.dotm`
   * `%APPDATA%\Microsoft\Excel\XLSTART\KirillLotin.xlam`
 
   Bu papkalar Office uchun ishonchli joy hisoblanadi, shuning uchun makros haqida ogohlantirish chiqmaydi;
-* o'rnatish vaqtida «VBA loyihasiga dasturiy kirish» ruxsatini vaqtincha yoqadi va oxirida avvalgi holatiga qaytaradi.
+* nusxalashdan oldin har bir qo'shimchani Word/Excel da bir marta yashirin ochib tekshiradi (odatda bir necha soniya; Office javob bermasa 90 soniyadan keyin tekshiruv to'xtatiladi);
+* agar tayyor fayl ishlamasa, zaxira usulda qo'shimchani Word/Excel ning o'zi yordamida `src/` dan qayta yig'adi.
+
+Tekshiruvsiz eng tez o'rnatish: `powershell -ExecutionPolicy Bypass -File install.ps1 -SkipCheck`.
 
 Administrator huquqi kerak emas — hammasi joriy foydalanuvchi uchun o'rnatiladi.
 
@@ -110,6 +112,9 @@ Excel da katak ichidagi qisman formatlash (masalan, bitta so'z qalin) o'girishda
 
 ```
 dist/KirillLotin-Setup.exe      tayyor EXE o'rnatuvchi
+addins/KirillLotin.dotm         tayyor Word qo'shimchasi (build_addins.py yasaydi)
+addins/KirillLotin.xlam         tayyor Excel qo'shimchasi (build_addins.py yasaydi)
+installer/build_addins.py       .dotm/.xlam ni src/ dan Office'siz yasovchi skript
 installer/KirillLotin.nsi       EXE o'rnatuvchi skripti (NSIS)
 installer/KirillLotin.ico       dastur belgisi (make_icon.py bilan yasalgan)
 install.bat / install.ps1       o'rnatuvchi
@@ -136,12 +141,15 @@ python -m unittest -v
 
 Qoidani o'zgartirsangiz, `src/KLCore.bas` va `tests/reference.py` ni birga yangilang.
 
-### EXE ni qayta yig'ish
+### Qo'shimchalar va EXE ni qayta yig'ish
 
-[NSIS 3](https://nsis.sourceforge.io) kerak (Windows yoki Linux: `apt install nsis`):
+`src/` dagi kod o'zgarganda (Python 3 va [NSIS 3](https://nsis.sourceforge.io) kerak, Linux: `apt install nsis`):
 
 ```
-makensis installer/KirillLotin.nsi
+python3 installer/build_addins.py     # addins/KirillLotin.dotm, addins/KirillLotin.xlam
+makensis installer/KirillLotin.nsi    # dist/KirillLotin-Setup.exe
 ```
 
-Natija: `dist/KirillLotin-Setup.exe`. GitHub'da har bir push da EXE avtomatik yig'iladi (Actions → artifact), `v1.0.0` kabi teg qo'yilganda esa Releases bo'limiga qo'shiladi.
+`build_addins.py` VBA loyihasini ([MS-OVBA]) va OLE konteynerni ([MS-CFB]) to'g'ridan-to'g'ri yozadi, Office kerak emas. Loyihada kompilyatsiya keshi yo'q (`_VBA_PROJECT` versiyasi `0xFFFF`), shuning uchun Office birinchi ochishda kodni manbadan o'zi kompilyatsiya qiladi — 32 va 64 bitli Office uchun bitta fayl.
+
+GitHub'da har bir push da hammasi avtomatik yig'iladi (Actions → artifact), `v1.1.0` kabi teg qo'yilganda esa Releases bo'limiga qo'shiladi.

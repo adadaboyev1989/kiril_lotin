@@ -15,12 +15,52 @@ Public Sub KL_WordToCyrillic()
     ConvertWord False
 End Sub
 
+' --- Tezkor tugmalar ---------------------------------------------------
+' Word qo'shimchani (STARTUP papkasidan) yuklaganda AutoExec avtomatik
+' ishga tushadi va Alt+Shift+L / Alt+Shift+K ni shu makroslarga bog'laydi.
+Public Sub AutoExec()
+    KL_SetupKeys
+End Sub
+
+Public Sub KL_SetupKeys()
+    If BindKeysToAddin() Then Exit Sub
+    BindKeysToNormal
+End Sub
+
+' Birinchi urinish: tugmalarni qo'shimchaning o'zida saqlash
+Private Function BindKeysToAddin() As Boolean
+    On Error GoTo Fail
+    CustomizationContext = MacroContainer
+    AddKeys
+    MacroContainer.Saved = True
+    BindKeysToAddin = True
+    Exit Function
+Fail:
+End Function
+
+' Zaxira: Normal shablon (faqat joriy seans uchun, saqlash so'ralmaydi)
+Private Sub BindKeysToNormal()
+    Dim wasSaved As Boolean
+    On Error Resume Next
+    wasSaved = NormalTemplate.Saved
+    CustomizationContext = NormalTemplate
+    AddKeys
+    If wasSaved Then NormalTemplate.Saved = True
+End Sub
+
+Private Sub AddKeys()
+    KeyBindings.Add KeyCategory:=wdKeyCategoryMacro, Command:="KL_WordToLatin", _
+        KeyCode:=BuildKeyCode(wdKeyAlt, wdKeyShift, wdKeyL)
+    KeyBindings.Add KeyCategory:=wdKeyCategoryMacro, Command:="KL_WordToCyrillic", _
+        KeyCode:=BuildKeyCode(wdKeyAlt, wdKeyShift, wdKeyK)
+End Sub
+
 ' --- Lenta (Ribbon) chaqiruvlari -------------------------------------
-Public Sub KL_RibbonToLatin(control As IRibbonControl)
+Public Sub KL_RibbonToLatin(control As Object)
     ConvertWord True
 End Sub
 
-Public Sub KL_RibbonToCyrillic(control As IRibbonControl)
+Public Sub KL_RibbonToCyrillic(control As Object)
     ConvertWord False
 End Sub
 

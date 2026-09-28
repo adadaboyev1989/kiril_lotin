@@ -42,11 +42,11 @@ Public Sub KL_ExcelToCyrillic()
 End Sub
 
 ' --- Lenta (Ribbon) chaqiruvlari -------------------------------------
-Public Sub KL_RibbonToLatin(control As IRibbonControl)
+Public Sub KL_RibbonToLatin(control As Object)
     ConvertExcel True
 End Sub
 
-Public Sub KL_RibbonToCyrillic(control As IRibbonControl)
+Public Sub KL_RibbonToCyrillic(control As Object)
     ConvertExcel False
 End Sub
 
