@@ -40,6 +40,7 @@ function Test-ProgId([string]$progId) {
 
 function Wait-AppClosed([string]$proc, [string]$name) {
     while (Get-Process -Name $proc -ErrorAction SilentlyContinue) {
+        if ($NoPause) { throw "$name ochiq. Avval $name ni yoping." }
         Write-Bad "$name ochiq. Iltimos, barcha $name oynalarini yoping va Enter tugmasini bosing..."
         [void](Read-Host)
     }
@@ -240,16 +241,20 @@ $installed = @()
 $failed = $false
 
 if (Test-ProgId 'Word.Application') {
-    Wait-AppClosed 'WINWORD' 'Word'
-    try { $installed += "word=" + (Install-Word | Select-Object -Last 1) }
+    try {
+        Wait-AppClosed 'WINWORD' 'Word'
+        $installed += "word=" + (Install-Word | Select-Object -Last 1)
+    }
     catch { $failed = $true; Write-Bad ("  Word: xatolik - " + $_.Exception.Message) }
 } else {
     Write-Bad 'Microsoft Word topilmadi - o''tkazib yuborildi.'
 }
 
 if (Test-ProgId 'Excel.Application') {
-    Wait-AppClosed 'EXCEL' 'Excel'
-    try { $installed += "excel=" + (Install-Excel | Select-Object -Last 1) }
+    try {
+        Wait-AppClosed 'EXCEL' 'Excel'
+        $installed += "excel=" + (Install-Excel | Select-Object -Last 1)
+    }
     catch { $failed = $true; Write-Bad ("  Excel: xatolik - " + $_.Exception.Message) }
 } else {
     Write-Bad 'Microsoft Excel topilmadi - o''tkazib yuborildi.'
@@ -276,3 +281,5 @@ if (-not $NoPause) {
     [void](Read-Host)
 }
 if ($installed.Count -eq 0) { exit 1 }
+if ($failed) { exit 2 }
+exit 0

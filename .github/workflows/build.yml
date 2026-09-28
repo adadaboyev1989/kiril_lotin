@@ -1,0 +1,37 @@
+name: O'rnatuvchini yig'ish
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Qoidalar testlari
+        run: python3 -m unittest discover -s tests -v
+
+      - name: NSIS ni o'rnatish
+        run: sudo apt-get update && sudo apt-get install -y nsis
+
+      - name: KirillLotin-Setup.exe ni yig'ish
+        run: makensis -V2 installer/KirillLotin.nsi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KirillLotin-Setup
+          path: dist/KirillLotin-Setup.exe
+
+      - name: Relizga qo'shish (v* teglari uchun)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/KirillLotin-Setup.exe

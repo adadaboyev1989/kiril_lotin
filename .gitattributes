@@ -3,3 +3,5 @@
 *.vba -text
 *.ps1 -text
 *.bat -text
+*.exe binary
+*.ico binary

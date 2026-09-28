@@ -22,12 +22,26 @@ O'rnatilgach, Word va Excel har safar ochilganda qo'shimcha avtomatik yuklanadi 
 
 ## O'rnatish
 
-Talablar: Windows, Microsoft Office 2010 yoki yangiroq (Office 2016/2019/2021/365).
+Talablar: Windows 7/8/10/11, Microsoft Office 2010 yoki yangiroq (Office 2016/2019/2021/365).
+
+### 1-usul: EXE o'rnatuvchi (tavsiya etiladi)
+
+1. [`dist/KirillLotin-Setup.exe`](dist/KirillLotin-Setup.exe) faylini yuklab oling.
+2. Word va Excel oynalarini yoping.
+3. `KirillLotin-Setup.exe` ni ishga tushiring va **Keyingi** tugmalarini bosing.
+4. Tayyor! Word yoki Excel ni oching — lentada **Kirill-Lotin** yorlig'i paydo bo'ladi.
+
+Administrator huquqi kerak emas. Dastur **Sozlamalar → Ilovalar** (yoki **Boshqaruv paneli → Dasturlar**) ro'yxatida «Kirill-Lotin (Word va Excel uchun)» nomi bilan ko'rinadi va o'sha yerdan o'chiriladi.
+
+> **Windows SmartScreen** «Noma'lum nashriyotchi» deb ogohlantirishi mumkin, chunki fayl raqamli imzo bilan imzolanmagan. **Batafsil → Baribir ishga tushirish** ni bosing.
+
+Jimjit o'rnatish (bir nechta kompyuterga tarqatish uchun): `KirillLotin-Setup.exe /S`.
+
+### 2-usul: skript orqali
 
 1. Loyihani yuklab oling: **Code → Download ZIP** va arxivni istalgan papkaga oching.
 2. Word va Excel oynalarini yoping.
 3. **`install.bat`** faylini ikki marta bosing.
-4. Tayyor! Word yoki Excel ni oching — lentada **Kirill-Lotin** yorlig'i paydo bo'ladi.
 
 O'rnatuvchi nima qiladi:
 
@@ -43,7 +57,7 @@ Administrator huquqi kerak emas — hammasi joriy foydalanuvchi uchun o'rnatilad
 
 ### O'chirish
 
-Word va Excel ni yopib, **`uninstall.bat`** ni ikki marta bosing.
+EXE bilan o'rnatilgan bo'lsa — **Sozlamalar → Ilovalar** dan «Kirill-Lotin» ni o'chiring. Skript bilan o'rnatilgan bo'lsa — Word va Excel ni yopib, **`uninstall.bat`** ni ikki marta bosing.
 
 ### Qo'lda o'rnatish (o'rnatuvchi ishlamasa)
 
@@ -95,6 +109,9 @@ Excel da katak ichidagi qisman formatlash (masalan, bitta so'z qalin) o'girishda
 ## Loyiha tuzilishi
 
 ```
+dist/KirillLotin-Setup.exe      tayyor EXE o'rnatuvchi
+installer/KirillLotin.nsi       EXE o'rnatuvchi skripti (NSIS)
+installer/KirillLotin.ico       dastur belgisi (make_icon.py bilan yasalgan)
 install.bat / install.ps1       o'rnatuvchi
 uninstall.bat / uninstall.ps1   o'chiruvchi
 src/KLCore.bas                  transliteratsiya yadrosi (Word va Excel uchun umumiy)
@@ -118,3 +135,13 @@ python -m unittest -v
 ```
 
 Qoidani o'zgartirsangiz, `src/KLCore.bas` va `tests/reference.py` ni birga yangilang.
+
+### EXE ni qayta yig'ish
+
+[NSIS 3](https://nsis.sourceforge.io) kerak (Windows yoki Linux: `apt install nsis`):
+
+```
+makensis installer/KirillLotin.nsi
+```
+
+Natija: `dist/KirillLotin-Setup.exe`. GitHub'da har bir push da EXE avtomatik yig'iladi (Actions → artifact), `v1.0.0` kabi teg qo'yilganda esa Releases bo'limiga qo'shiladi.

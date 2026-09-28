@@ -23,6 +23,7 @@ if (Test-Path $StateFile) {
 
 foreach ($p in @(@('WINWORD', 'Word'), @('EXCEL', 'Excel'))) {
     while (Get-Process -Name $p[0] -ErrorAction SilentlyContinue) {
+        if ($NoPause) { Write-Host "$($p[1]) ochiq. Avval uni yoping." -ForegroundColor Yellow; exit 1 }
         Write-Host "$($p[1]) ochiq. Iltimos, uni yoping va Enter tugmasini bosing..." -ForegroundColor Yellow
         [void](Read-Host)
     }
