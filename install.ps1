@@ -19,11 +19,13 @@
     Ishga tushirish: install.bat faylini ikki marta bosing.
     Parametrlar:  -NoPause    oxirida Enter kutilmaydi (EXE o'rnatuvchi uchun)
                   -SkipCheck  Office'da tekshirmasdan nusxalash (eng tez)
+                  -Diagnose   o'rnatmasdan, faqat tashxis hisobotini tuzish
 #>
 [CmdletBinding()]
 param(
     [switch]$NoPause,
-    [switch]$SkipCheck
+    [switch]$SkipCheck,
+    [switch]$Diagnose
 )
 
 $ErrorActionPreference = 'Stop'
@@ -33,6 +35,8 @@ $AddinDir = Join-Path $Root 'addins'
 $StateDir = Join-Path $env:APPDATA 'KirillLotin'
 $StateFile = Join-Path $StateDir 'installed.txt'
 $LogFile = Join-Path $env:TEMP 'KirillLotin-install.log'
+$ReportFile = Join-Path $env:TEMP 'KirillLotin-tashxis.txt'
+$Warnings = New-Object System.Collections.ArrayList
 $CheckTimeout = 90
 $BuildTimeout = 180
 
@@ -82,7 +86,11 @@ function Get-DefaultStartup([string]$app, [int]$major) {
 # Skript blokini alohida jarayonda vaqt chegarasi bilan bajarish.
 # Office yashirin oynada "osilib" qolsa, jarayon to'xtatiladi.
 function Invoke-Timed([scriptblock]$Block, [object[]]$ArgList, [int]$Seconds, [string]$Proc) {
-    $job = Start-Job -ScriptBlock $Block -ArgumentList $ArgList
+    if ($ArgList -and $ArgList.Count -gt 0) {
+        $job = Start-Job -ScriptBlock $Block -ArgumentList $ArgList
+    } else {
+        $job = Start-Job -ScriptBlock $Block
+    }
     try {
         if (-not (Wait-Job -Job $job -Timeout $Seconds)) {
             Stop-Job -Job $job
@@ -273,9 +281,221 @@ function Remove-OldCopies($app, [int]$major) {
 }
 
 # ----------------------------------------------------------------------
+#  Office xavfsizlik sozlamalari (Ishonch markazi)
+# ----------------------------------------------------------------------
+function Get-RegValue([string]$path, [string]$name) {
+    try { return (Get-ItemProperty -Path $path -Name $name -ErrorAction Stop).$name } catch { return $null }
+}
+
+function Add-Warning([string]$m) {
+    if ($Warnings -contains $m) { return }
+    [void]$Warnings.Add($m)
+    Write-Bad "  DIQQAT: $m"
+}
+
+# Office bir marta muammo qilgan qo'shimchani "O'chirilgan elementlar"
+# (Disabled Items) ro'yxatiga qo'shadi va boshqa yuklamaydi. Bizning
+# fayllarimizga tegishli yozuvlar o'chiriladi.
+function Clear-DisabledItems([int]$major, [string]$app) {
+    $n = 0
+    foreach ($sub in @('DisabledItems', 'StartupItems')) {
+        $key = "HKCU:\Software\Microsoft\Office\$major.0\$app\Resiliency\$sub"
+        if (-not (Test-Path $key)) { continue }
+        $item = Get-Item -Path $key
+        foreach ($name in $item.GetValueNames()) {
+            $data = $item.GetValue($name)
+            if ($data -is [byte[]]) {
+                $text = [Text.Encoding]::Unicode.GetString($data).ToLower()
+                if ($text.Contains('kirilllotin')) {
+                    Remove-ItemProperty -Path $key -Name $name -ErrorAction SilentlyContinue
+                    $n++
+                }
+            }
+        }
+    }
+    if ($n -gt 0) { Write-Ok "  $app 'O'chirilgan elementlar' ro'yxatidan $n ta yozuv olib tashlandi." }
+}
+
+# STARTUP/XLSTART papkasini aniq "ishonchli joy" sifatida qo'shish
+# (odatda u allaqachon ishonchli, lekin sozlamalardan olib tashlangan bo'lishi mumkin)
+function Add-TrustedLocation([int]$major, [string]$app, [string]$folder) {
+    if ($major -lt 12) { return }
+    $key = "HKCU:\Software\Microsoft\Office\$major.0\$app\Security\Trusted Locations\KirillLotin"
+    if (-not (Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
+    Set-ItemProperty -Path $key -Name 'Path' -Value ($folder.TrimEnd('\') + '\')
+    Set-ItemProperty -Path $key -Name 'AllowSubFolders' -Value 1 -Type DWord
+    Set-ItemProperty -Path $key -Name 'Description' -Value 'Kirill-Lotin'
+    Write-Log "  ishonchli joy qo'shildi: $folder"
+}
+
+# Qo'shimchani to'sishi mumkin bo'lgan sozlamalarni aniqlash
+function Test-OfficeSecurity([int]$major, [string]$app) {
+    if ($major -lt 12) { return }
+    $v = "$major.0"
+    $roots = @(
+        @("HKCU:\Software\Microsoft\Office\$v\$app\Security", 'sizning sozlamangiz'),
+        @("HKCU:\Software\Policies\Microsoft\Office\$v\$app\Security", 'guruh siyosati'),
+        @("HKLM:\Software\Policies\Microsoft\Office\$v\$app\Security", 'guruh siyosati (kompyuter)')
+    )
+    $where = "$app > Fayl > Parametrlar > Ishonch markazi > Ishonch markazi parametrlari"
+    foreach ($r in $roots) {
+        $key = $r[0]; $src = $r[1]
+        $x = Get-RegValue $key 'DisableAllAddins'
+        if ($x -and [int]$x -ne 0) { Add-Warning "${app}: 'Barcha ilova qo'shimchalarini o'chirish' yoqilgan ($src). O'chiring: $where > Qo'shimchalar." }
+        $x = Get-RegValue $key 'RequireAddinSig'
+        if ($x -and [int]$x -ne 0) { Add-Warning "${app}: 'Ilova qo'shimchalari ishonchli nashriyotchi imzosiga ega bo'lishi shart' yoqilgan ($src). O'chiring: $where > Qo'shimchalar." }
+        $x = Get-RegValue ($key + '\Trusted Locations') 'AllLocationsDisabled'
+        if ($x -and [int]$x -ne 0) { Add-Warning "${app}: 'Barcha ishonchli joylarni o'chirish' yoqilgan ($src). O'chiring: $where > Ishonchli joylar." }
+        $x = Get-RegValue $key 'VBAWarnings'
+        if ($x) { Write-Log "  $app VBAWarnings = $x ($src)" }
+    }
+    foreach ($k in @("HKCU:\Software\Policies\Microsoft\Office\$v\Common\Security\Trusted Locations", "HKLM:\Software\Policies\Microsoft\Office\$v\Common\Security\Trusted Locations")) {
+        $x = Get-RegValue $k 'Allow User Locations'
+        if ($null -ne $x -and [int]$x -eq 0) { Add-Warning "Guruh siyosati foydalanuvchi ishonchli joylarini taqiqlagan - STARTUP papkasidagi makroslar ishlamasligi mumkin. Tizim administratoriga murojaat qiling." }
+    }
+    foreach ($k in @("HKCU:\Software\Policies\Microsoft\Office\$v\Common", "HKLM:\Software\Policies\Microsoft\Office\$v\Common")) {
+        $x = Get-RegValue $k 'VBAOff'
+        if ($x -and [int]$x -ne 0) { Add-Warning "Office'da VBA (makroslar) guruh siyosati bilan o'chirilgan - qo'shimcha ishlay olmaydi. Tizim administratoriga murojaat qiling." }
+    }
+}
+
+# O'rnatilgandan keyin: Word qo'shimchani STARTUP dan haqiqatan yuklayaptimi?
+# Avval Word o'zi yuklagan qo'shimchalar ichidan qidiriladi; topilmasa
+# (avtomatlashtirishda Word STARTUP ni o'tkazib yuborishi mumkin) fayl
+# global shablon sifatida qo'lda ulanadi - xavfsizlik sozlamalari bunda ham amal qiladi.
+$VerifyWord = {
+    param($path)
+    $ErrorActionPreference = 'Stop'
+    $w = New-Object -ComObject Word.Application
+    $zero = 0; $yes = $true
+    try {
+        $w.Visible = $false
+        $w.DisplayAlerts = 0
+        $found = ''; $inst = ''; $answer = ''
+        foreach ($a in $w.AddIns) {
+            if ([string]$a.Name -like 'KirillLotin*') { $found = [string]$a.Path + '\' + [string]$a.Name; $inst = [string]$a.Installed }
+        }
+        if (-not $found) {
+            try {
+                try { $a = $w.AddIns.Add($path, $yes) } catch { $a = $w.AddIns.Add([ref]$path, [ref]$yes) }
+                $found = $path; $inst = 'qo''lda: ' + [string]$a.Installed
+            } catch { $answer = 'XATO: ' + $_.Exception.Message }
+        }
+        if ($found) {
+            try { $answer = [string]$w.Run('KL_Ping') } catch { $answer = 'XATO: ' + $_.Exception.Message }
+        }
+        "$found|$inst|$answer"
+    } finally {
+        try { $w.Quit($zero) } catch { try { $w.Quit([ref]$zero) } catch { } }
+        [void][Runtime.InteropServices.Marshal]::ReleaseComObject($w)
+    }
+}
+
+# Natija: @{ Status = 'ok' | 'notloaded' | 'blocked' | 'unknown'; Message = ... }
+function Test-WordLoadsAddin([string]$path) {
+    Write-Step "Word qo'shimchani ishga tushishda yuklashi tekshirilmoqda..."
+    try {
+        $r = Split-Result (Invoke-Timed $VerifyWord @($path) $CheckTimeout 'WINWORD')
+        Write-Log "  Word AddIns: '$($r.Startup)', Installed=$($r.Version), javob: $($r.Answer)"
+        if (-not $r.Startup) {
+            return @{ Status = 'notloaded'; Message = "Word qo'shimchani yuklamadi ($($r.Answer)). Word > Fayl > Parametrlar > Qo'shimchalar > Boshqarish: 'O'chirilgan elementlar' va 'Word qo'shimchalari' ni tekshiring." }
+        }
+        if ($r.Answer -like 'OK*') {
+            Write-Ok "  Word qo'shimchani yuklaydi va makroslar ishlaydi."
+            return @{ Status = 'ok'; Message = '' }
+        }
+        return @{ Status = 'blocked'; Message = "Word qo'shimchani yuklaydi, lekin makroslar ishlamayapti ($($r.Answer)). Ishonch markazi sozlamalarini tekshiring." }
+    } catch {
+        Write-Log "  Word tekshiruvi bajarilmadi: $($_.Exception.Message)"
+        return @{ Status = 'unknown'; Message = '' }
+    }
+}
+
+# Tashxis hisoboti (install.ps1 -Diagnose)
+function Write-Diagnostics() {
+    $lines = New-Object System.Collections.ArrayList
+    [void]$lines.Add('Kirill-Lotin tashxis hisoboti - ' + (Get-Date))
+    [void]$lines.Add('PowerShell ' + $PSVersionTable.PSVersion + ', Windows ' + [Environment]::OSVersion.Version + ', ' + ([IntPtr]::Size * 8) + ' bitli jarayon')
+    foreach ($app in $apps) {
+        [void]$lines.Add('')
+        [void]$lines.Add("=== $($app.Name) ===")
+        if (-not (Test-ProgId $app.ProgId)) { [void]$lines.Add('  o''rnatilmagan'); continue }
+        $major = Get-OfficeMajor $app.ProgId
+        [void]$lines.Add("  Office versiyasi: $major.0")
+        $startup = Get-DefaultStartup $app.Name $major
+        foreach ($f in @($app.File, $app.LegacyFile)) {
+            $p = Join-Path $startup $f
+            if (Test-Path $p) { [void]$lines.Add("  Fayl bor: $p ($((Get-Item $p).Length) bayt)") }
+        }
+        if (Test-Path $StateFile) {
+            foreach ($line in Get-Content -Path $StateFile -Encoding UTF8) {
+                if ($line -like ($app.Name.ToLower() + '=*')) {
+                    $p = $line.Substring($line.IndexOf('=') + 1)
+                    if (Test-Path $p) { $e = 'fayl bor' } else { $e = 'FAYL YO''Q' }
+                    [void]$lines.Add("  O'rnatilgan joy: $p ($e)")
+                }
+            }
+        }
+        $v = "$major.0"
+        foreach ($k in @("HKCU:\Software\Microsoft\Office\$v\$($app.Name)\Security", "HKCU:\Software\Policies\Microsoft\Office\$v\$($app.Name)\Security", "HKLM:\Software\Policies\Microsoft\Office\$v\$($app.Name)\Security")) {
+            foreach ($n in @('VBAWarnings', 'DisableAllAddins', 'RequireAddinSig', 'AccessVBOM')) {
+                $x = Get-RegValue $k $n
+                if ($null -ne $x) { [void]$lines.Add("  $k : $n = $x") }
+            }
+            $x = Get-RegValue ($k + '\Trusted Locations') 'AllLocationsDisabled'
+            if ($null -ne $x) { [void]$lines.Add("  $k\Trusted Locations : AllLocationsDisabled = $x") }
+        }
+        $tl = "HKCU:\Software\Microsoft\Office\$v\$($app.Name)\Security\Trusted Locations"
+        if (Test-Path $tl) {
+            foreach ($sub in Get-ChildItem -Path $tl) {
+                [void]$lines.Add("  Ishonchli joy: " + (Get-RegValue $sub.PSPath 'Path'))
+            }
+        }
+        foreach ($sub in @('DisabledItems', 'StartupItems')) {
+            $key = "HKCU:\Software\Microsoft\Office\$v\$($app.Name)\Resiliency\$sub"
+            if (Test-Path $key) {
+                $item = Get-Item -Path $key
+                foreach ($name in $item.GetValueNames()) {
+                    $data = $item.GetValue($name)
+                    if ($data -is [byte[]]) {
+                        $text = [Text.Encoding]::Unicode.GetString($data) -replace '[^\u0020-\u007E\u0400-\u04FF]', ' '
+                        [void]$lines.Add("  $sub : " + $text.Trim())
+                    }
+                }
+            }
+        }
+        Test-OfficeSecurity $major $app.Name
+    }
+    [void]$lines.Add('')
+    [void]$lines.Add('=== Word ichidan tekshiruv ===')
+    if (Test-ProgId 'Word.Application') {
+        if (Get-Process -Name WINWORD -ErrorAction SilentlyContinue) {
+            [void]$lines.Add('  Word ochiq - tekshiruv o''tkazib yuborildi (Word ni yopib qayta ishga tushiring).')
+        } else {
+            $wp = ''
+            if (Test-Path $StateFile) { foreach ($line in Get-Content -Path $StateFile -Encoding UTF8) { if ($line -like 'word=*') { $wp = $line.Substring(5) } } }
+            $v = Test-WordLoadsAddin $wp
+            if ($v.Message) { Add-Warning $v.Message }
+        }
+    }
+    [void]$lines.Add('')
+    [void]$lines.Add('=== Topilgan muammolar ===')
+    if ($Warnings.Count -eq 0) { [void]$lines.Add('  Muammo topilmadi.') }
+    foreach ($w in $Warnings) { [void]$lines.Add("  - $w") }
+    [void]$lines.Add('')
+    [void]$lines.Add('=== O''rnatish jurnali ===')
+    if (Test-Path (Join-Path $StateDir 'install.log')) { foreach ($l in Get-Content (Join-Path $StateDir 'install.log')) { [void]$lines.Add($l) } }
+    Set-Content -Path $ReportFile -Value $lines -Encoding UTF8
+    Write-Host ''
+    Write-Host "Tashxis hisoboti: $ReportFile"
+    try { Start-Process notepad.exe -ArgumentList ('"' + $ReportFile + '"') } catch { }
+}
+
+# ----------------------------------------------------------------------
 #  Bitta ilova uchun o'rnatish
 # ----------------------------------------------------------------------
-function Install-Addin($app) {
+$Built = @{}
+function Install-Addin($app, [bool]$forceBuild = $false) {
     Write-Step "$($app.Name) uchun o'rnatilmoqda..."
     Wait-AppClosed $app.Proc $app.Name
 
@@ -285,6 +505,7 @@ function Install-Addin($app) {
     if ($legacy) { $file = $app.LegacyFile } else { $file = $app.File }
 
     Remove-OldCopies $app $major
+    if ($major -gt 0) { Clear-DisabledItems $major $app.Name }
 
     $tmp = Join-Path $env:TEMP ('KirillLotin_' + [guid]::NewGuid().ToString('N') + [IO.Path]::GetExtension($file))
     $prebuilt = Join-Path $AddinDir $app.File
@@ -292,7 +513,7 @@ function Install-Addin($app) {
     $ok = $false
     $timedOut = $false
     try {
-        if (-not $legacy) {
+        if (-not $legacy -and -not $forceBuild) {
             if (-not (Test-Path $prebuilt)) { throw "Fayl topilmadi: $prebuilt" }
             Write-FileCopy $prebuilt $tmp
             if ($SkipCheck) {
@@ -332,9 +553,10 @@ function Install-Addin($app) {
                 Write-Log "  $($app.Name) versiyasi: $($res.Version), STARTUP: $($res.Startup)"
                 if (-not (Test-Path $tmp)) { throw "Fayl saqlanmadi." }
                 $ok = $true
+                $Built[$app.Name] = $true
             } catch {
                 $msg = $_.Exception.Message
-                if ($timedOut -and -not $legacy) {
+                if ($timedOut -and -not $legacy -and -not $forceBuild) {
                     # Office umuman javob bermayapti - tayyor fayl tekshiruvsiz o'rnatiladi
                     Write-Bad "  Zaxira usul ham ishlamadi ($msg). Tayyor fayl tekshiruvsiz o'rnatiladi."
                     Write-FileCopy $prebuilt $tmp
@@ -355,6 +577,10 @@ function Install-Addin($app) {
         $dest = Join-Path $startup $file
         Write-FileCopy $tmp $dest
         Write-Ok "  $($app.Name): o'rnatildi -> $dest"
+        if ($major -gt 0) {
+            try { Add-TrustedLocation $major $app.Name $startup } catch { Write-Log "  ishonchli joy qo'shilmadi: $($_.Exception.Message)" }
+            Test-OfficeSecurity $major $app.Name
+        }
         return $dest
     } finally {
         Remove-Item -Path $tmp -Force -ErrorAction SilentlyContinue
@@ -364,6 +590,17 @@ function Install-Addin($app) {
 # ----------------------------------------------------------------------
 #  ASOSIY QISM
 # ----------------------------------------------------------------------
+$apps = @(
+    @{ Name = 'Word';  Proc = 'WINWORD'; ProgId = 'Word.Application';  File = 'KirillLotin.dotm'; LegacyFile = 'KirillLotin.dot'; Test = $TestWord;  Build = $BuildWord },
+    @{ Name = 'Excel'; Proc = 'EXCEL';   ProgId = 'Excel.Application'; File = 'KirillLotin.xlam'; LegacyFile = 'KirillLotin.xla'; Test = $TestExcel; Build = $BuildExcel }
+)
+
+if ($Diagnose) {
+    Write-Diagnostics
+    if (-not $NoPause) { Write-Host 'Chiqish uchun Enter tugmasini bosing...'; [void](Read-Host) }
+    exit 0
+}
+
 try { Set-Content -Path $LogFile -Value ('Kirill-Lotin o''rnatish jurnali, ' + (Get-Date)) } catch { }
 Write-Log ('PowerShell ' + $PSVersionTable.PSVersion + ', Windows ' + [Environment]::OSVersion.Version + ', ' + ([IntPtr]::Size * 8) + ' bit')
 
@@ -373,10 +610,6 @@ Write-Host '  Kirill-Lotin  -  Word va Excel uchun o''rnatish' -ForegroundColor 
 Write-Host '=============================================' -ForegroundColor White
 Write-Host ''
 
-$apps = @(
-    @{ Name = 'Word';  Proc = 'WINWORD'; ProgId = 'Word.Application';  File = 'KirillLotin.dotm'; LegacyFile = 'KirillLotin.dot'; Test = $TestWord;  Build = $BuildWord },
-    @{ Name = 'Excel'; Proc = 'EXCEL';   ProgId = 'Excel.Application'; File = 'KirillLotin.xlam'; LegacyFile = 'KirillLotin.xla'; Test = $TestExcel; Build = $BuildExcel }
-)
 
 $installed = @()
 $failed = $false
@@ -399,8 +632,37 @@ if ($installed.Count -gt 0) {
     Set-Content -Path $StateFile -Value $installed -Encoding UTF8
 }
 
+# Word qo'shimchani haqiqatan yuklayaptimi (Excel avtomatlashtirishda XLSTART ni yuklamaydi)
+if (-not $SkipCheck -and ($installed -like 'word=*') -and -not (Get-Process -Name WINWORD -ErrorAction SilentlyContinue)) {
+    $wordPath = (@($installed -like 'word=*')[0]).Substring(5)
+    $check = Test-WordLoadsAddin $wordPath
+    if (($check.Status -eq 'notloaded' -or $check.Status -eq 'blocked') -and -not $Built['Word']) {
+        # Tayyor fayl bu Office'da ishlamadi - qo'shimchalarni Office'ning o'zi yordamida qayta yig'amiz
+        Write-Bad "  Tayyor fayl Word ishga tushganda ishlamadi. Qo'shimchalar Office yordamida qayta yig'ilmoqda..."
+        foreach ($app in $apps) {
+            if (($installed -like ($app.Name.ToLower() + '=*')) -and -not $Built[$app.Name]) {
+                try { [void](Install-Addin $app $true | Select-Object -Last 1) }
+                catch { Write-Bad ("  $($app.Name): qayta yig'ib bo'lmadi - " + $_.Exception.Message) }
+            }
+        }
+        $check = Test-WordLoadsAddin $wordPath
+    }
+    if ($check.Message) { Add-Warning $check.Message }
+}
+Remove-Item -Path $ReportFile -Force -ErrorAction SilentlyContinue
+if ($Warnings.Count -gt 0) {
+    $txt = @('Kirill-Lotin o''rnatildi, lekin quyidagi Office sozlamalari uning ishlashiga xalaqit berishi mumkin:', '')
+    foreach ($w in $Warnings) { $txt += "- $w"; $txt += '' }
+    $txt += 'Sozlamani o''zgartirgach, Word/Excel ni qayta ishga tushiring.'
+    $txt += "Batafsil jurnal: $LogFile"
+    Set-Content -Path $ReportFile -Value $txt -Encoding UTF8
+}
+
 Write-Host ''
-if ($installed.Count -gt 0 -and -not $failed) {
+if ($installed.Count -gt 0 -and -not $failed -and $Warnings.Count -gt 0) {
+    Write-Bad "O'rnatildi, lekin Office sozlamalari qo'shimchani to'sishi mumkin (yuqoridagi DIQQAT xabarlari)."
+    Write-Bad "Batafsil: $ReportFile"
+} elseif ($installed.Count -gt 0 -and -not $failed) {
     Write-Ok "Tayyor! Word yoki Excel ni oching - 'Kirill-Lotin' tugmalari paydo bo'ladi."
     Write-Ok "Tezkor tugmalar: Alt+Shift+L (Kirill -> Lotin), Alt+Shift+K (Lotin -> Kirill)."
 } elseif ($installed.Count -gt 0) {
@@ -418,4 +680,5 @@ if (-not $NoPause) {
 }
 if ($installed.Count -eq 0) { exit 1 }
 if ($failed) { exit 2 }
+if ($Warnings.Count -gt 0) { exit 3 }
 exit 0

@@ -13,7 +13,7 @@
 Unicode true
 
 !define APPNAME   "Kirill-Lotin"
-!define APPVER    "1.3.0"
+!define APPVER    "1.3.1"
 !define PUBLISHER "Kirill-Lotin"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\KirillLotin"
 
@@ -243,11 +243,22 @@ Section "Kirill-Lotin" SecMain
   ${ElseIf} $0 == 1
     MessageBox MB_OK|MB_ICONSTOP "Qo'shimchani o'rnatib bo'lmadi.$\r$\n$\r$\nSabablari o'rnatuvchi oynasidagi xabarlarda ko'rsatilgan (Tafsilotlar).$\r$\nBatafsil jurnal: $TEMP\KirillLotin-install.log" /SD IDOK
     Abort "O'rnatish muvaffaqiyatsiz tugadi."
+  ${ElseIf} $0 == 3
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Qo'shimcha o'rnatildi, lekin Office sozlamalari uning ishlashiga xalaqit berishi mumkin.$\r$\n$\r$\nNima qilish kerakligi yozilgan fayl hozir ochiladi." /SD IDOK
+    ${IfNot} ${Silent}
+      Exec '"$WINDIR\notepad.exe" "$TEMP\KirillLotin-tashxis.txt"'
+    ${EndIf}
   ${ElseIf} $0 == 2
     MessageBox MB_OK|MB_ICONEXCLAMATION "Qo'shimcha faqat qisman o'rnatildi (Word yoki Excel uchun xatolik bo'ldi).$\r$\nTafsilotlarni o'rnatuvchi oynasida ko'ring.$\r$\nBatafsil jurnal: $TEMP\KirillLotin-install.log" /SD IDOK
   ${EndIf}
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
+
+  ; Boshlash menyusi: tashxis va o'chirish
+  CreateDirectory "$SMPROGRAMS\Kirill-Lotin"
+  CreateShortCut "$SMPROGRAMS\Kirill-Lotin\Kirill-Lotin tashxis.lnk" "$PowerShell" '-NoProfile -ExecutionPolicy Bypass -File "$INSTDIR\install.ps1" -Diagnose' "$INSTDIR\KirillLotin.ico"
+  CreateShortCut "$SMPROGRAMS\Kirill-Lotin\Qayta o'rnatish.lnk" "$PowerShell" '-NoProfile -ExecutionPolicy Bypass -File "$INSTDIR\install.ps1"' "$INSTDIR\KirillLotin.ico"
+  CreateShortCut "$SMPROGRAMS\Kirill-Lotin\O'chirish.lnk" "$INSTDIR\Uninstall.exe"
   WriteRegStr   HKCU "${UNINSTKEY}" "DisplayName"     "Kirill-Lotin (Word va Excel uchun)"
   WriteRegStr   HKCU "${UNINSTKEY}" "DisplayVersion"  "${APPVER}"
   WriteRegStr   HKCU "${UNINSTKEY}" "Publisher"       "${PUBLISHER}"
@@ -268,6 +279,7 @@ Section "Uninstall"
     Pop $0
   ${EndIf}
 
+  RMDir /r "$SMPROGRAMS\Kirill-Lotin"
   RMDir /r "$INSTDIR\src"
   RMDir /r "$INSTDIR\addins"
   Delete "$INSTDIR\install.ps1"

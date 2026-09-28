@@ -48,6 +48,13 @@ foreach ($p in ($paths | Select-Object -Unique)) {
     }
 }
 if (Test-Path $StateDir) { Remove-Item -Path $StateDir -Recurse -Force }
+# O'rnatuvchi qo'shgan ishonchli joylar
+foreach ($ver in @('12.0', '14.0', '15.0', '16.0')) {
+    foreach ($app in @('Word', 'Excel')) {
+        $tl = "HKCU:\Software\Microsoft\Office\$ver\$app\Security\Trusted Locations\KirillLotin"
+        if (Test-Path $tl) { Remove-Item -Path $tl -Recurse -Force }
+    }
+}
 # Sozlamalar (apostrof turi) - HKCU\Software\VB and VBA Program Settings\KirillLotin
 $settings = 'HKCU:\Software\VB and VBA Program Settings\KirillLotin'
 if (Test-Path $settings) { Remove-Item -Path $settings -Recurse -Force }

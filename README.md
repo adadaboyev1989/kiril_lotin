@@ -74,6 +74,19 @@ Tekshiruvsiz eng tez o'rnatish: `powershell -ExecutionPolicy Bypass -File instal
 
 Administrator huquqi kerak emas — hammasi joriy foydalanuvchi uchun o'rnatiladi.
 
+### Lentada «Kirill-Lotin» chiqmasa
+
+O'rnatuvchi o'rnatishdan keyin Word'ni ishga tushirib, qo'shimcha haqiqatan yuklanishini tekshiradi:
+
+* tayyor fayl ishlamasa — qo'shimchani Word/Excel ning o'zi yordamida avtomatik qayta yig'adi;
+* Office «O'chirilgan elementlar» (Disabled Items) ro'yxatiga kiritgan bo'lsa — u yerdan olib tashlaydi;
+* STARTUP/XLSTART papkalarini ishonchli joy sifatida qo'shadi;
+* Office sozlamalari qo'shimchani to'sayotgan bo'lsa (masalan, *«Barcha ilova qo'shimchalarini o'chirish»*, *«Ilova qo'shimchalari imzolangan bo'lishi shart»*, *«Barcha ishonchli joylarni o'chirish»*, guruh siyosati bilan VBA o'chirilgan) — nima qilish kerakligini yozib, faylda ko'rsatadi.
+
+Keyinchalik tekshirish uchun: **Boshlash → Kirill-Lotin → Kirill-Lotin tashxis**. Hisobot (`%TEMP%\KirillLotin-tashxis.txt`) Notepad'da ochiladi — muammo hal bo'lmasa, shu faylni yuboring.
+
+Qo'lda tekshirish: **Word → Fayl → Parametrlar → Qo'shimchalar → Boshqarish: O'chirilgan elementlar → O'tish** (ro'yxatda KirillLotin bo'lsa, yoqing), so'ng **Ishonch markazi → Ishonch markazi parametrlari → Qo'shimchalar** bo'limida belgilar olib tashlanganini tekshiring.
+
 ### O'chirish
 
 EXE bilan o'rnatilgan bo'lsa — **Sozlamalar → Ilovalar** dan «Kirill-Lotin» ni o'chiring. Skript bilan o'rnatilgan bo'lsa — Word va Excel ni yopib, **`uninstall.bat`** ni ikki marta bosing.

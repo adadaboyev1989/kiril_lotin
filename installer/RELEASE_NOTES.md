@@ -11,6 +11,13 @@ O'zbek tilidagi matnni **kirill → lotin** va **lotin → kirill** alifbosiga o
 Tezkor tugmalar: **Alt+Shift+L** (Kirill → Lotin), **Alt+Shift+K** (Lotin → Kirill).
 Excel formulalari: `=LOTINGA(A1)`, `=KIRILGA(A1)`.
 
+### 1.3.1 dagi o'zgarishlar — lenta chiqmasligi muammosi
+* O'rnatishdan keyin Word ishga tushirilib, qo'shimcha **haqiqatan yuklanishi** tekshiriladi. Tayyor fayl ishlamasa, qo'shimcha Word/Excel ning o'zi yordamida avtomatik qayta yig'iladi.
+* Office «O'chirilgan elementlar» (Disabled Items) ro'yxatiga kiritgan qo'shimcha u yerdan olib tashlanadi.
+* STARTUP va XLSTART papkalari ishonchli joy sifatida qo'shiladi.
+* Qo'shimchani to'sadigan Office sozlamalari (ilova qo'shimchalarini o'chirish, imzo talab qilish, ishonchli joylarni o'chirish, guruh siyosati bilan VBA o'chirilgani) aniqlanadi va nima qilish kerakligi ko'rsatiladi.
+* Boshlash menyusida **«Kirill-Lotin tashxis»** — muammo bo'lsa, hisobotni yuboring.
+
 ### 1.3.0 dagi o'zgarishlar — Office'ning barcha versiyalari
 * **Excel 2003/2007** da qo'shimcha umuman ishlamasligi tuzatildi (Excel 2010 dan paydo bo'lgan `Range.CountLarge` ishlatilgan edi).
 * **Word 2003/2007** da qo'shimcha ishlamasligi tuzatildi (Word 2010 dan paydo bo'lgan `UndoRecord` ishlatilgan edi).
