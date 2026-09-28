@@ -1,0 +1,5 @@
+# Windows fayllari CRLF bilan saqlanadi va git ularni o'zgartirmaydi
+*.bas -text
+*.vba -text
+*.ps1 -text
+*.bat -text

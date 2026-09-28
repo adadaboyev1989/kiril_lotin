@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customUI xmlns="http://schemas.microsoft.com/office/2006/01/customui">
+  <ribbon>
+    <tabs>
+      <tab id="klTab" label="Kirill-Lotin" insertAfterMso="TabHome">
+        <group id="klGroupConvert" label="O&#699;girish">
+          <button id="klToLatin"
+                  label="Kirill &#8594; Lotin"
+                  size="large"
+                  imageMso="ReplaceDialog"
+                  screentip="Kirill &#8594; Lotin (Alt+Shift+L)"
+                  supertip="Belgilangan matnni kirill alifbosidan lotin alifbosiga o&#699;giradi. Hech narsa belgilanmasa, butun hujjat (varaq) o&#699;giriladi."
+                  onAction="KL_RibbonToLatin"/>
+          <button id="klToCyrillic"
+                  label="Lotin &#8594; Kirill"
+                  size="large"
+                  imageMso="ReplaceDialog"
+                  screentip="Lotin &#8594; Kirill (Alt+Shift+K)"
+                  supertip="Belgilangan matnni lotin alifbosidan kirill alifbosiga o&#699;giradi. Hech narsa belgilanmasa, butun hujjat (varaq) o&#699;giriladi."
+                  onAction="KL_RibbonToCyrillic"/>
+        </group>
+        <group id="klGroupOptions" label="Sozlamalar">
+          <checkBox id="klAscii"
+                    label="Oddiy apostrof (')"
+                    screentip="Oddiy apostrof"
+                    supertip="Belgilansa, o&#699; va g&#699; harflarida oddiy ' belgisi ishlatiladi. Aks holda rasmiy imlodagi &#699; va &#700; belgilari qo&#699;yiladi."
+                    getPressed="KL_RibbonGetAscii"
+                    onAction="KL_RibbonSetAscii"/>
+          <button id="klAbout"
+                  label="Yordam"
+                  onAction="KL_RibbonAbout"/>
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>
