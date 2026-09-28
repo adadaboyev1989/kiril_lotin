@@ -1,18 +1,20 @@
 <#
     Kirill-Lotin o'rnatuvchisi
     --------------------------
-    addins\ papkasidagi tayyor qo'shimchalarni Office avtomatik yuklaydigan
-    papkalarga nusxalaydi:
+    Word va Excel qo'shimchalarini Office avtomatik yuklaydigan papkalarga
+    joylaydi (Word STARTUP va Excel XLSTART). Bu papkalar Office uchun
+    "ishonchli joy", shuning uchun makroslar ogohlantirishsiz ishlaydi.
 
-      Word  -> %APPDATA%\Microsoft\Word\STARTUP\KirillLotin.dotm
-      Excel -> %APPDATA%\Microsoft\Excel\XLSTART\KirillLotin.xlam
+    Office 2007 va yangiroq (2007/2010/2013/2016/2019/2021/365, 32/64 bit):
+        addins\ dagi tayyor .dotm / .xlam nusxalanadi. Oldin har biri
+        Word/Excel da bir marta ochib tekshiriladi; ishlamasa, qo'shimcha
+        Word/Excel ning o'zi yordamida qayta yig'iladi (zaxira usul).
+    Office 2003 va eskiroq (lenta yo'q):
+        qo'shimcha Word/Excel yordamida .dot / .xla formatida yig'iladi,
+        tugmalar asboblar panelida chiqadi.
 
-    Bu papkalar Office uchun "ishonchli joy" hisoblanadi, shuning uchun
-    makroslar ogohlantirishsiz ishlaydi.
-
-    Nusxalashdan oldin har bir qo'shimcha Word/Excel da bir marta ochib
-    tekshiriladi (vaqt chegarasi bilan). Agar tayyor fayl ishlamasa, zaxira
-    usulda qo'shimcha Office'ning o'zi yordamida qayta yig'iladi.
+    PowerShell 2.0 (Windows 7) va yangiroq versiyalarda ishlaydi.
+    Jurnal: %TEMP%\KirillLotin-install.log
 
     Ishga tushirish: install.bat faylini ikki marta bosing.
     Parametrlar:  -NoPause    oxirida Enter kutilmaydi (EXE o'rnatuvchi uchun)
@@ -30,12 +32,16 @@ $Src = Join-Path $Root 'src'
 $AddinDir = Join-Path $Root 'addins'
 $StateDir = Join-Path $env:APPDATA 'KirillLotin'
 $StateFile = Join-Path $StateDir 'installed.txt'
+$LogFile = Join-Path $env:TEMP 'KirillLotin-install.log'
 $CheckTimeout = 90
 $BuildTimeout = 180
 
-function Write-Step([string]$m) { Write-Host $m -ForegroundColor Cyan }
-function Write-Ok([string]$m)   { Write-Host $m -ForegroundColor Green }
-function Write-Bad([string]$m)  { Write-Host $m -ForegroundColor Yellow }
+function Write-Log([string]$m) {
+    try { Add-Content -Path $LogFile -Value ('[' + (Get-Date -Format 'HH:mm:ss') + '] ' + $m) } catch { }
+}
+function Write-Step([string]$m) { Write-Log $m; Write-Host $m -ForegroundColor Cyan }
+function Write-Ok([string]$m)   { Write-Log $m; Write-Host $m -ForegroundColor Green }
+function Write-Bad([string]$m)  { Write-Log $m; Write-Host $m -ForegroundColor Yellow }
 
 function Test-ProgId([string]$progId) {
     return $null -ne [type]::GetTypeFromProgID($progId)
@@ -49,22 +55,25 @@ function Wait-AppClosed([string]$proc, [string]$name) {
     }
 }
 
-# Office versiyasi reestrdan olinadi (Office'ni ishga tushirmasdan)
-function Get-OfficeVersion([string]$progId) {
+# Office asosiy versiyasi reestrdan (Office'ni ishga tushirmasdan):
+# 11 = 2003, 12 = 2007, 14 = 2010, 15 = 2013, 16 = 2016/2019/2021/365
+function Get-OfficeMajor([string]$progId) {
     try {
         $cur = (Get-ItemProperty -Path "Registry::HKEY_CLASSES_ROOT\$progId\CurVer" -ErrorAction Stop).'(default)'
-        if ($cur -match '\.(\d+)$') { return "$($Matches[1]).0" }
+        if ($cur -match '\.(\d+)$') { return [int]$Matches[1] }
     } catch { }
-    return '16.0'
+    return 0
 }
 
-function Get-StartupFolder([string]$app) {
+function Get-DefaultStartup([string]$app, [int]$major) {
     if ($app -eq 'Word') {
-        $ver = Get-OfficeVersion 'Word.Application'
-        try {
-            $p = (Get-ItemProperty -Path "HKCU:\Software\Microsoft\Office\$ver\Word\Options" -Name 'STARTUP-PATH' -ErrorAction Stop).'STARTUP-PATH'
-            if ($p) { return [Environment]::ExpandEnvironmentVariables($p) }
-        } catch { }
+        if ($major -gt 0) {
+            try {
+                $key = "HKCU:\Software\Microsoft\Office\$major.0\Word\Options"
+                $p = (Get-ItemProperty -Path $key -Name 'STARTUP-PATH' -ErrorAction Stop).'STARTUP-PATH'
+                if ($p) { return [Environment]::ExpandEnvironmentVariables($p) }
+            } catch { }
+        }
         return Join-Path $env:APPDATA 'Microsoft\Word\STARTUP'
     }
     return Join-Path $env:APPDATA 'Microsoft\Excel\XLSTART'
@@ -86,20 +95,36 @@ function Invoke-Timed([scriptblock]$Block, [object[]]$ArgList, [int]$Seconds, [s
     }
 }
 
+# Jobdan qaytgan "startup|versiya|javob" qatorini ajratish
+function Split-Result($raw) {
+    $text = [string]($raw | Select-Object -Last 1)
+    $parts = $text -split '\|', 3
+    while ($parts.Count -lt 3) { $parts += '' }
+    return @{ Startup = $parts[0]; Version = $parts[1]; Answer = $parts[2] }
+}
+
 # ----------------------------------------------------------------------
-#  Tekshiruv: qo'shimchani ochib, KL_Ping makrosini chaqirish
+#  Office ichida bajariladigan bloklar (alohida jarayonda).
+#  Word metodlari PowerShell 2.0 da [ref] talab qiladi, yangi
+#  versiyalarda esa oddiy qiymat - ikkalasi ham sinab ko'riladi.
 # ----------------------------------------------------------------------
 $TestWord = {
     param($path)
     $ErrorActionPreference = 'Stop'
     $w = New-Object -ComObject Word.Application
+    $no = $false; $yes = $true; $zero = 0
     try {
         $w.Visible = $false
         $w.DisplayAlerts = 0
-        $d = $w.Documents.Open($path, $false, $true, $false)
-        try { [string]$w.Run('KL_Ping') } finally { $d.Close(0) }
+        $startup = [string]$w.StartupPath
+        $ver = [string]$w.Version
+        try { $d = $w.Documents.Open($path, $no, $yes, $no) }
+        catch { $d = $w.Documents.Open([ref]$path, [ref]$no, [ref]$yes, [ref]$no) }
+        try { $answer = [string]$w.Run('KL_Ping') }
+        finally { try { $d.Close($zero) } catch { $d.Close([ref]$zero) } }
+        "$startup|$ver|$answer"
     } finally {
-        try { $w.Quit(0) } catch { }
+        try { $w.Quit($zero) } catch { try { $w.Quit([ref]$zero) } catch { } }
         [void][Runtime.InteropServices.Marshal]::ReleaseComObject($w)
     }
 }
@@ -111,44 +136,58 @@ $TestExcel = {
     try {
         $x.Visible = $false
         $x.DisplayAlerts = $false
+        $startup = [string]$x.StartupPath
+        $ver = [string]$x.Version
         $wb = $x.Workbooks.Open($path)
-        try { [string]$x.Run("'" + $wb.Name + "'!KL_Ping") } finally { $wb.Close($false) }
+        try { $answer = [string]$x.Run("'" + $wb.Name + "'!KL_Ping") }
+        finally { $wb.Close($false) }
+        "$startup|$ver|$answer"
     } finally {
         try { $x.Quit() } catch { }
         [void][Runtime.InteropServices.Marshal]::ReleaseComObject($x)
     }
 }
 
-# ----------------------------------------------------------------------
-#  Zaxira usul: qo'shimchani Office yordamida yig'ish
-# ----------------------------------------------------------------------
 $BuildWord = {
-    param($src, $out)
+    param($src, $out, $legacy)
     $ErrorActionPreference = 'Stop'
     $w = New-Object -ComObject Word.Application
+    $zero = 0
+    # 1 = wdFormatTemplate (.dot), 15 = wdFormatXMLTemplateMacroEnabled (.dotm)
+    if ($legacy) { $fmt = 1 } else { $fmt = 15 }
     try {
         $w.Visible = $false
         $w.DisplayAlerts = 0
+        $startup = [string]$w.StartupPath
+        $ver = [string]$w.Version
         $d = $w.Documents.Add()
         $comps = $d.VBProject.VBComponents
         [void]$comps.Import((Join-Path $src 'KLCore.bas'))
         [void]$comps.Import((Join-Path $src 'KLWord.bas'))
-        $d.SaveAs2($out, 15)      # wdFormatXMLTemplateMacroEnabled
-        $d.Close(0)
+        try { $d.SaveAs2($out, $fmt) }
+        catch {
+            try { $d.SaveAs($out, $fmt) } catch { $d.SaveAs([ref]$out, [ref]$fmt) }
+        }
+        try { $d.Close($zero) } catch { $d.Close([ref]$zero) }
+        "$startup|$ver|built"
     } finally {
-        try { $w.Quit(0) } catch { }
+        try { $w.Quit($zero) } catch { try { $w.Quit([ref]$zero) } catch { } }
         [void][Runtime.InteropServices.Marshal]::ReleaseComObject($w)
     }
 }
 
 $BuildExcel = {
-    param($src, $out)
+    param($src, $out, $legacy)
     $ErrorActionPreference = 'Stop'
     $x = New-Object -ComObject Excel.Application
+    # 18 = xlAddIn (.xla), 55 = xlOpenXMLAddIn (.xlam)
+    if ($legacy) { $fmt = 18 } else { $fmt = 55 }
     try {
         $x.Visible = $false
         $x.DisplayAlerts = $false
         $x.EnableEvents = $false
+        $startup = [string]$x.StartupPath
+        $ver = [string]$x.Version
         $wb = $x.Workbooks.Add()
         $comps = $wb.VBProject.VBComponents
         [void]$comps.Import((Join-Path $src 'KLCore.bas'))
@@ -156,8 +195,9 @@ $BuildExcel = {
         $codeName = [string]$wb.CodeName
         if (-not $codeName) { $codeName = 'ThisWorkbook' }
         $comps.Item($codeName).CodeModule.AddFromString([IO.File]::ReadAllText((Join-Path $src 'ThisWorkbook.vba')))
-        $wb.SaveAs($out, 55)      # xlOpenXMLAddIn
+        $wb.SaveAs($out, $fmt)
         $wb.Close($false)
+        "$startup|$ver|built"
     } finally {
         try { $x.Quit() } catch { }
         [void][Runtime.InteropServices.Marshal]::ReleaseComObject($x)
@@ -165,8 +205,9 @@ $BuildExcel = {
 }
 
 # VBA loyihasiga dasturiy kirishni vaqtincha yoqish (faqat zaxira usulda)
-function Enable-VbomAccess([string]$ver, [string]$appKey) {
-    $key = "HKCU:\Software\Microsoft\Office\$ver\$appKey\Security"
+function Enable-VbomAccess([int]$major, [string]$appKey) {
+    if ($major -le 0) { $major = 16 }
+    $key = "HKCU:\Software\Microsoft\Office\$major.0\$appKey\Security"
     if (-not (Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
     $old = (Get-ItemProperty -Path $key -Name AccessVBOM -ErrorAction SilentlyContinue).AccessVBOM
     Set-ItemProperty -Path $key -Name AccessVBOM -Value 1 -Type DWord
@@ -182,43 +223,52 @@ function Restore-VbomAccess($state) {
     }
 }
 
-# Zaxira usulda yig'ilgan faylga lenta (Ribbon) XML ni qo'shish
+# Zaxira usulda yig'ilgan faylga lenta (Ribbon) XML ni qo'shish.
+# System.IO.Packaging (WindowsBase, .NET 3.0+) - PowerShell 2.0 da ham bor.
 function Add-RibbonXml([string]$package, [string]$xmlFile) {
-    Add-Type -AssemblyName System.IO.Compression
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    Add-Type -AssemblyName WindowsBase
     $relType = 'http://schemas.microsoft.com/office/2006/relationships/ui/extensibility'
-    $relNs = 'http://schemas.openxmlformats.org/package/2006/relationships'
-    $zip = [System.IO.Compression.ZipFile]::Open($package, [System.IO.Compression.ZipArchiveMode]::Update)
+    $uri = New-Object System.Uri('/customUI/customUI.xml', [System.UriKind]::Relative)
+    $pkg = [System.IO.Packaging.Package]::Open($package, [System.IO.FileMode]::Open, [System.IO.FileAccess]::ReadWrite)
     try {
-        $old = $zip.GetEntry('customUI/customUI.xml')
-        if ($old) { $old.Delete() }
+        foreach ($r in @($pkg.GetRelationshipsByType($relType))) { $pkg.DeleteRelationship($r.Id) }
+        if ($pkg.PartExists($uri)) { $pkg.DeletePart($uri) }
+        $part = $pkg.CreatePart($uri, 'application/xml', [System.IO.Packaging.CompressionOption]::Normal)
         $bytes = [System.IO.File]::ReadAllBytes($xmlFile)
-        $stream = $zip.CreateEntry('customUI/customUI.xml').Open()
+        $stream = $part.GetStream()
         $stream.Write($bytes, 0, $bytes.Length)
         $stream.Close()
-
-        $relsEntry = $zip.GetEntry('_rels/.rels')
-        $reader = New-Object System.IO.StreamReader($relsEntry.Open())
-        $relsText = $reader.ReadToEnd()
-        $reader.Close()
-        [xml]$rels = $relsText
-        $exists = $false
-        foreach ($r in $rels.DocumentElement.ChildNodes) {
-            if ($r -is [System.Xml.XmlElement] -and $r.GetAttribute('Type') -eq $relType) { $exists = $true }
-        }
-        if (-not $exists) {
-            $node = $rels.CreateElement('Relationship', $relNs)
-            $node.SetAttribute('Id', 'rIdKL')
-            $node.SetAttribute('Type', $relType)
-            $node.SetAttribute('Target', 'customUI/customUI.xml')
-            [void]$rels.DocumentElement.AppendChild($node)
-        }
-        $relsEntry.Delete()
-        $writer = New-Object System.IO.StreamWriter($zip.CreateEntry('_rels/.rels').Open(), (New-Object System.Text.UTF8Encoding($false)))
-        $writer.Write($rels.OuterXml)
-        $writer.Close()
+        [void]$pkg.CreateRelationship($uri, [System.IO.Packaging.TargetMode]::Internal, $relType, 'rIdKL')
     } finally {
-        $zip.Dispose()
+        $pkg.Close()
+    }
+}
+
+# Faylni baytma-bayt yozish: yuklab olingan arxivdagi "Internetdan olingan"
+# belgisi (Zone.Identifier) nusxaga o'tmaydi, Office makroslarni bloklamaydi.
+function Write-FileCopy([string]$from, [string]$to) {
+    [System.IO.File]::WriteAllBytes($to, [System.IO.File]::ReadAllBytes($from))
+}
+
+# Oldingi versiyalar qoldirgan nusxalarni olib tashlash
+function Remove-OldCopies($app, [int]$major) {
+    $dirs = @(Get-DefaultStartup $app.Name $major)
+    if (Test-Path $StateFile) {
+        foreach ($line in Get-Content -Path $StateFile -Encoding UTF8) {
+            $i = $line.IndexOf('=')
+            if ($i -gt 0 -and $line.Substring(0, $i) -eq $app.Name.ToLower()) {
+                $dirs += (Split-Path -Parent $line.Substring($i + 1))
+            }
+        }
+    }
+    foreach ($dir in ($dirs | Select-Object -Unique)) {
+        foreach ($name in @($app.File, $app.LegacyFile)) {
+            $p = Join-Path $dir $name
+            if (Test-Path $p) {
+                Remove-Item -Path $p -Force
+                Write-Log "  eski nusxa o'chirildi: $p"
+            }
+        }
     }
 }
 
@@ -229,53 +279,81 @@ function Install-Addin($app) {
     Write-Step "$($app.Name) uchun o'rnatilmoqda..."
     Wait-AppClosed $app.Proc $app.Name
 
+    $major = Get-OfficeMajor $app.ProgId
+    $legacy = ($major -gt 0 -and $major -lt 12)
+    Write-Log "  $($app.ProgId): asosiy versiya $major, eski format: $legacy"
+    if ($legacy) { $file = $app.LegacyFile } else { $file = $app.File }
+
+    Remove-OldCopies $app $major
+
+    $tmp = Join-Path $env:TEMP ('KirillLotin_' + [guid]::NewGuid().ToString('N') + [IO.Path]::GetExtension($file))
     $prebuilt = Join-Path $AddinDir $app.File
-    if (-not (Test-Path $prebuilt)) { throw "Fayl topilmadi: $prebuilt" }
-
-    $startup = Get-StartupFolder $app.Name
-    if (-not (Test-Path $startup)) { New-Item -ItemType Directory -Path $startup -Force | Out-Null }
-    $dest = Join-Path $startup $app.File
-    # Eski nusxa tekshiruvga xalaqit bermasligi uchun avval olib tashlanadi
-    if (Test-Path $dest) { Remove-Item -Path $dest -Force }
-
-    $ext = [IO.Path]::GetExtension($app.File)
-    $tmp = Join-Path $env:TEMP ('KirillLotin_' + [guid]::NewGuid().ToString('N') + $ext)
-    Copy-Item -Path $prebuilt -Destination $tmp -Force
+    $startup = $null
+    $ok = $false
+    $timedOut = $false
     try {
-        $ok = $true
-        if (-not $SkipCheck) {
-            Write-Step "  $($app.Name) da tekshirilmoqda (bir necha soniya)..."
-            try {
-                $answer = [string](Invoke-Timed $app.Test @($tmp) $CheckTimeout $app.Proc)
-                if ($answer -like 'OK*Shahar*') {
-                    Write-Ok "  Tekshiruv: $answer"
-                } else {
-                    $ok = $false
-                    Write-Bad "  Kutilmagan javob: '$answer'"
+        if (-not $legacy) {
+            if (-not (Test-Path $prebuilt)) { throw "Fayl topilmadi: $prebuilt" }
+            Write-FileCopy $prebuilt $tmp
+            if ($SkipCheck) {
+                $ok = $true
+            } else {
+                Write-Step "  $($app.Name) da tekshirilmoqda (bir necha soniya)..."
+                try {
+                    $res = Split-Result (Invoke-Timed $app.Test @($tmp) $CheckTimeout $app.Proc)
+                    $startup = $res.Startup
+                    Write-Log "  $($app.Name) versiyasi: $($res.Version), STARTUP: $($res.Startup)"
+                    if ($res.Answer -like 'OK*Shahar*') {
+                        $ok = $true
+                        Write-Ok "  Tekshiruv: $($res.Answer)"
+                    } else {
+                        Write-Bad "  Kutilmagan javob: '$($res.Answer)'"
+                    }
+                } catch [System.TimeoutException] {
+                    $timedOut = $true
+                    Write-Bad "  $($app.Name) tekshiruvga javob bermadi."
+                } catch {
+                    Write-Bad "  Tekshiruv xatosi: $($_.Exception.Message)"
                 }
-            } catch [System.TimeoutException] {
-                Write-Bad "  $($app.Name) tekshiruvga javob bermadi - tekshiruvsiz o'rnatiladi."
-            } catch {
-                $ok = $false
-                Write-Bad "  Tekshiruv xatosi: $($_.Exception.Message)"
             }
         }
 
         if (-not $ok) {
-            Write-Step "  Zaxira usul: qo'shimcha $($app.Name) yordamida qayta yig'ilmoqda..."
+            if ($legacy) {
+                Write-Step "  Office 2003 yoki eskiroq: qo'shimcha $($app.Name) yordamida yig'ilmoqda..."
+            } else {
+                Write-Step "  Zaxira usul: qo'shimcha $($app.Name) yordamida qayta yig'ilmoqda..."
+            }
             Remove-Item -Path $tmp -Force -ErrorAction SilentlyContinue
-            $vbom = Enable-VbomAccess (Get-OfficeVersion $app.ProgId) $app.Name
+            $vbom = Enable-VbomAccess $major $app.Name
             try {
-                Invoke-Timed $app.Build @($Src, $tmp) $BuildTimeout $app.Proc | Out-Null
+                $res = Split-Result (Invoke-Timed $app.Build @($Src, $tmp, $legacy) $BuildTimeout $app.Proc)
+                if ($res.Startup) { $startup = $res.Startup }
+                Write-Log "  $($app.Name) versiyasi: $($res.Version), STARTUP: $($res.Startup)"
+                if (-not (Test-Path $tmp)) { throw "Fayl saqlanmadi." }
+                $ok = $true
             } catch {
-                throw "Qo'shimchani yig'ib bo'lmadi: $($_.Exception.Message). Ehtimol, $($app.Name) > Fayl > Parametrlar > Ishonch markazi > Makros parametrlari > 'VBA loyihasi obyekt modeliga ishonish' ni yoqish kerak."
+                $msg = $_.Exception.Message
+                if ($timedOut -and -not $legacy) {
+                    # Office umuman javob bermayapti - tayyor fayl tekshiruvsiz o'rnatiladi
+                    Write-Bad "  Zaxira usul ham ishlamadi ($msg). Tayyor fayl tekshiruvsiz o'rnatiladi."
+                    Write-FileCopy $prebuilt $tmp
+                } else {
+                    throw "Qo'shimchani yig'ib bo'lmadi: $msg. $($app.Name) > Parametrlar > Ishonch markazi > Makros parametrlari > 'VBA loyihasi obyekt modeliga ishonish' ni yoqib, qayta urinib ko'ring."
+                }
             } finally {
                 Restore-VbomAccess $vbom
             }
-            Add-RibbonXml $tmp (Join-Path $Src 'customUI.xml')
+            if ($ok -and -not $legacy) {
+                try { Add-RibbonXml $tmp (Join-Path $Src 'customUI.xml') }
+                catch { Write-Bad "  Lenta yorlig'ini qo'shib bo'lmadi ($($_.Exception.Message)); tezkor tugmalar ishlaydi." }
+            }
         }
 
-        Copy-Item -Path $tmp -Destination $dest -Force
+        if (-not $startup) { $startup = Get-DefaultStartup $app.Name $major }
+        if (-not (Test-Path $startup)) { New-Item -ItemType Directory -Path $startup -Force | Out-Null }
+        $dest = Join-Path $startup $file
+        Write-FileCopy $tmp $dest
         Write-Ok "  $($app.Name): o'rnatildi -> $dest"
         return $dest
     } finally {
@@ -286,6 +364,9 @@ function Install-Addin($app) {
 # ----------------------------------------------------------------------
 #  ASOSIY QISM
 # ----------------------------------------------------------------------
+try { Set-Content -Path $LogFile -Value ('Kirill-Lotin o''rnatish jurnali, ' + (Get-Date)) } catch { }
+Write-Log ('PowerShell ' + $PSVersionTable.PSVersion + ', Windows ' + [Environment]::OSVersion.Version + ', ' + ([IntPtr]::Size * 8) + ' bit')
+
 Write-Host ''
 Write-Host '=============================================' -ForegroundColor White
 Write-Host '  Kirill-Lotin  -  Word va Excel uchun o''rnatish' -ForegroundColor White
@@ -293,8 +374,8 @@ Write-Host '=============================================' -ForegroundColor Whit
 Write-Host ''
 
 $apps = @(
-    @{ Name = 'Word';  Proc = 'WINWORD'; ProgId = 'Word.Application';  File = 'KirillLotin.dotm'; Test = $TestWord;  Build = $BuildWord },
-    @{ Name = 'Excel'; Proc = 'EXCEL';   ProgId = 'Excel.Application'; File = 'KirillLotin.xlam'; Test = $TestExcel; Build = $BuildExcel }
+    @{ Name = 'Word';  Proc = 'WINWORD'; ProgId = 'Word.Application';  File = 'KirillLotin.dotm'; LegacyFile = 'KirillLotin.dot'; Test = $TestWord;  Build = $BuildWord },
+    @{ Name = 'Excel'; Proc = 'EXCEL';   ProgId = 'Excel.Application'; File = 'KirillLotin.xlam'; LegacyFile = 'KirillLotin.xla'; Test = $TestExcel; Build = $BuildExcel }
 )
 
 $installed = @()
@@ -313,20 +394,22 @@ foreach ($app in $apps) {
     }
 }
 
+if (-not (Test-Path $StateDir)) { New-Item -ItemType Directory -Path $StateDir -Force | Out-Null }
 if ($installed.Count -gt 0) {
-    if (-not (Test-Path $StateDir)) { New-Item -ItemType Directory -Path $StateDir -Force | Out-Null }
     Set-Content -Path $StateFile -Value $installed -Encoding UTF8
 }
 
 Write-Host ''
 if ($installed.Count -gt 0 -and -not $failed) {
-    Write-Ok "Tayyor! Word yoki Excel ni oching - lentada 'Kirill-Lotin' yorlig'i paydo bo'ladi."
+    Write-Ok "Tayyor! Word yoki Excel ni oching - 'Kirill-Lotin' tugmalari paydo bo'ladi."
     Write-Ok "Tezkor tugmalar: Alt+Shift+L (Kirill -> Lotin), Alt+Shift+K (Lotin -> Kirill)."
 } elseif ($installed.Count -gt 0) {
     Write-Bad "Qisman o'rnatildi. Yuqoridagi xabarlarni ko'ring."
 } else {
     Write-Bad "O'rnatib bo'lmadi."
 }
+Write-Host "Jurnal: $LogFile"
+try { Copy-Item -Path $LogFile -Destination (Join-Path $StateDir 'install.log') -Force } catch { }
 
 if (-not $NoPause) {
     Write-Host ''

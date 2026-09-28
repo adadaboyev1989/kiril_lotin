@@ -22,7 +22,19 @@ O'rnatilgach, Word va Excel har safar ochilganda qo'shimcha avtomatik yuklanadi 
 
 ## O'rnatish
 
-Talablar: Windows 7/8/10/11, Microsoft Office 2010 yoki yangiroq (Office 2016/2019/2021/365).
+Talablar:
+
+* Windows 7, 8, 8.1, 10, 11 (Windows XP/Vista da — Windows PowerShell 2.0 o'rnatilgan bo'lsa);
+* Microsoft Office **2003, 2007, 2010, 2013, 2016, 2019, 2021, 365** — 32 va 64 bitli, jumladan rus va boshqa tildagi Office.
+
+| Office | Qo'shimcha fayllari | Tugmalar |
+|---|---|---|
+| 2007 va yangiroq | `KirillLotin.dotm`, `KirillLotin.xlam` | «Kirill-Lotin» lenta yorlig'i |
+| 2003 | `KirillLotin.dot`, `KirillLotin.xla` (o'rnatish paytida Office yordamida yig'iladi) | «Kirill-Lotin» asboblar paneli |
+
+Qo'shimchalar Word/Excel ning haqiqiy STARTUP papkasiga joylanadi (u Office'ning o'zidan so'raladi, shuning uchun lokallashtirilgan Office'da ham to'g'ri joy tanlanadi).
+
+Muammo bo'lsa, o'rnatish jurnali: `%TEMP%\KirillLotin-install.log` (nusxasi `%APPDATA%\KirillLotin\install.log`).
 
 ### 1-usul: EXE o'rnatuvchi (tavsiya etiladi)
 

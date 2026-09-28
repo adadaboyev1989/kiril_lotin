@@ -11,6 +11,15 @@ O'zbek tilidagi matnni **kirill → lotin** va **lotin → kirill** alifbosiga o
 Tezkor tugmalar: **Alt+Shift+L** (Kirill → Lotin), **Alt+Shift+K** (Lotin → Kirill).
 Excel formulalari: `=LOTINGA(A1)`, `=KIRILGA(A1)`.
 
+### 1.3.0 dagi o'zgarishlar — Office'ning barcha versiyalari
+* **Excel 2003/2007** da qo'shimcha umuman ishlamasligi tuzatildi (Excel 2010 dan paydo bo'lgan `Range.CountLarge` ishlatilgan edi).
+* **Word 2003/2007** da qo'shimcha ishlamasligi tuzatildi (Word 2010 dan paydo bo'lgan `UndoRecord` ishlatilgan edi).
+* **Windows 7 (PowerShell 2.0)** da o'rnatuvchining zaxira usuli ishlamasligi tuzatildi.
+* **Rus va boshqa tildagi Office**: Word STARTUP papkasi endi Word'ning o'zidan so'raladi.
+* **Office 2003** qo'llab-quvvatlanadi: `.dot` / `.xla`, tugmalar asboblar panelida.
+* Yuklab olingan fayllardagi «Internetdan olingan» belgisi olib tashlanadi — yangi Office makroslarni bloklamaydi.
+* O'rnatish jurnali: `%TEMP%\KirillLotin-install.log`.
+
 ### 1.2.0 dagi o'zgarishlar
 * Word yoki Excel ochiq bo'lsa, o'rnatuvchi (va o'chiruvchi) ochiq Office dasturlari ro'yxatini ko'rsatadi va **«Majburan yopish»** tugmasini taklif qiladi: u barcha ochiq Office dasturlarini (Word, Excel, PowerPoint, Outlook va boshqalar) darhol yopadi. Saqlanmagan o'zgarishlar yo'qoladi, shuning uchun avval ishingizni saqlang.
 * **«Qayta tekshirish»** tugmasi — dasturlarni o'zingiz yopganingizdan keyin davom etish uchun.

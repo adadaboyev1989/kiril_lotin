@@ -13,7 +13,7 @@
 Unicode true
 
 !define APPNAME   "Kirill-Lotin"
-!define APPVER    "1.2.0"
+!define APPVER    "1.3.0"
 !define PUBLISHER "Kirill-Lotin"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\KirillLotin"
 
@@ -39,7 +39,7 @@ BrandingText "${APPNAME} ${APPVER}"
 !define MUI_WELCOMEPAGE_TITLE "Kirill-Lotin o'rnatuvchisi"
 !define MUI_WELCOMEPAGE_TEXT "Bu dastur Microsoft Word va Excel ga o'zbek tilidagi matnni kirill alifbosidan lotin alifbosiga va lotindan kirillga o'giradigan qo'shimchani o'rnatadi.$\r$\n$\r$\nDavom etishdan oldin Word va Excel oynalarini yoping.$\r$\n$\r$\n$_CLICK"
 !define MUI_FINISHPAGE_TITLE "O'rnatish tugadi"
-!define MUI_FINISHPAGE_TEXT "Word yoki Excel ni oching - lentada $\"Kirill-Lotin$\" yorlig'i paydo bo'ladi.$\r$\n$\r$\nTezkor tugmalar:$\r$\n   Alt+Shift+L  -  Kirill > Lotin$\r$\n   Alt+Shift+K  -  Lotin > Kirill$\r$\n$\r$\nExcel formulalari: =LOTINGA(A1), =KIRILGA(A1)"
+!define MUI_FINISHPAGE_TEXT "Word yoki Excel ni oching - lentada $\"Kirill-Lotin$\" yorlig'i paydo bo'ladi.$\r$\n$\r$\nTezkor tugmalar:$\r$\n   Alt+Shift+L  -  Kirill > Lotin$\r$\n   Alt+Shift+K  -  Lotin > Kirill$\r$\n$\r$\nExcel formulalari: =LOTINGA(A1), =KIRILGA(A1)$\r$\n$\r$\nOffice 2003 da tugmalar $\"Kirill-Lotin$\" asboblar panelida chiqadi."
 !define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\README.md"
 !define MUI_FINISHPAGE_SHOWREADME_TEXT "Qo'llanmani ochish"
 !define MUI_FINISHPAGE_SHOWREADME_NOTCHECKED
@@ -238,13 +238,13 @@ Section "Kirill-Lotin" SecMain
   Pop $0
 
   ${If} $0 == "error"
-    MessageBox MB_OK|MB_ICONSTOP "PowerShell ni ishga tushirib bo'lmadi. O'rnatish to'xtatildi." /SD IDOK
+    MessageBox MB_OK|MB_ICONSTOP "PowerShell ni ishga tushirib bo'lmadi. O'rnatish to'xtatildi.$\r$\n$\r$\nWindows XP/Vista da avval Windows PowerShell 2.0 (yoki yangiroq) ni o'rnating." /SD IDOK
     Abort "PowerShell topilmadi."
   ${ElseIf} $0 == 1
-    MessageBox MB_OK|MB_ICONSTOP "Qo'shimchani o'rnatib bo'lmadi.$\r$\n$\r$\nSabablari o'rnatuvchi oynasidagi xabarlarda ko'rsatilgan (Tafsilotlar)." /SD IDOK
+    MessageBox MB_OK|MB_ICONSTOP "Qo'shimchani o'rnatib bo'lmadi.$\r$\n$\r$\nSabablari o'rnatuvchi oynasidagi xabarlarda ko'rsatilgan (Tafsilotlar).$\r$\nBatafsil jurnal: $TEMP\KirillLotin-install.log" /SD IDOK
     Abort "O'rnatish muvaffaqiyatsiz tugadi."
   ${ElseIf} $0 == 2
-    MessageBox MB_OK|MB_ICONEXCLAMATION "Qo'shimcha faqat qisman o'rnatildi (Word yoki Excel uchun xatolik bo'ldi).$\r$\nTafsilotlarni o'rnatuvchi oynasida ko'ring." /SD IDOK
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Qo'shimcha faqat qisman o'rnatildi (Word yoki Excel uchun xatolik bo'ldi).$\r$\nTafsilotlarni o'rnatuvchi oynasida ko'ring.$\r$\nBatafsil jurnal: $TEMP\KirillLotin-install.log" /SD IDOK
   ${EndIf}
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"

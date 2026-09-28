@@ -10,14 +10,24 @@ $ErrorActionPreference = 'Stop'
 $StateDir = Join-Path $env:APPDATA 'KirillLotin'
 $StateFile = Join-Path $StateDir 'installed.txt'
 
+$wordDir = Join-Path $env:APPDATA 'Microsoft\Word\STARTUP'
+$excelDir = Join-Path $env:APPDATA 'Microsoft\Excel\XLSTART'
 $paths = @(
-    (Join-Path $env:APPDATA 'Microsoft\Word\STARTUP\KirillLotin.dotm'),
-    (Join-Path $env:APPDATA 'Microsoft\Excel\XLSTART\KirillLotin.xlam')
+    (Join-Path $wordDir 'KirillLotin.dotm'), (Join-Path $wordDir 'KirillLotin.dot'),
+    (Join-Path $excelDir 'KirillLotin.xlam'), (Join-Path $excelDir 'KirillLotin.xla')
 )
+# O'rnatuvchi yozib qo'ygan haqiqiy joylar (masalan, lokallashtirilgan STARTUP papkasi)
 if (Test-Path $StateFile) {
     foreach ($line in Get-Content -Path $StateFile -Encoding UTF8) {
         $i = $line.IndexOf('=')
-        if ($i -gt 0) { $paths += $line.Substring($i + 1) }
+        if ($i -gt 0) {
+            $p = $line.Substring($i + 1)
+            $paths += $p
+            $dir = Split-Path -Parent $p
+            foreach ($n in @('KirillLotin.dotm', 'KirillLotin.dot', 'KirillLotin.xlam', 'KirillLotin.xla')) {
+                $paths += (Join-Path $dir $n)
+            }
+        }
     }
 }
 

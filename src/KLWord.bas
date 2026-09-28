@@ -20,6 +20,23 @@ End Sub
 ' ishga tushadi va Alt+Shift+L / Alt+Shift+K ni shu makroslarga bog'laydi.
 Public Sub AutoExec()
     KL_SetupKeys
+    If Val(Application.Version) < 12 Then KL_WordCreateToolbar
+End Sub
+
+' Word 2003 va eskiroq: lenta yo'q, shuning uchun asboblar paneli
+Public Sub KL_WordCreateToolbar()
+    Dim bar As Object
+    On Error Resume Next
+    CustomizationContext = MacroContainer
+    Set bar = CommandBars("Kirill-Lotin")
+    If bar Is Nothing Then
+        Set bar = CommandBars.Add(Name:="Kirill-Lotin", Position:=1, Temporary:=True)
+        KL_AddToolbarButton bar, "Kirill -> Lotin", "KL_WordToLatin"
+        KL_AddToolbarButton bar, "Lotin -> Kirill", "KL_WordToCyrillic"
+        KL_AddToolbarButton bar, "Yordam", "KL_ShowAbout"
+    End If
+    bar.Visible = True
+    MacroContainer.Saved = True
 End Sub
 
 Public Sub KL_SetupKeys()
@@ -69,6 +86,7 @@ Private Sub ConvertWord(ByVal toLatin As Boolean)
     Dim doc As Document
     Dim useSelection As Boolean
     Dim undoRec As Object
+    Dim app As Object
     Dim story As Range, r As Range
     Dim total As Long
 
@@ -89,9 +107,11 @@ Private Sub ConvertWord(ByVal toLatin As Boolean)
                   vbYesNo + vbQuestion, KL_Title()) <> vbYes Then Exit Sub
     End If
 
-    ' Bitta Ctrl+Z bilan bekor qilish uchun (Word 2010+)
+    ' Bitta Ctrl+Z bilan bekor qilish uchun (Word 2010+). Kechiktirilgan
+    ' bog'lanish: Word 2003/2007 da UndoRecord yo'q, kompilyatsiya buzilmasin.
     On Error Resume Next
-    Set undoRec = Application.UndoRecord
+    Set app = Application
+    Set undoRec = app.UndoRecord
     If Not undoRec Is Nothing Then undoRec.StartCustomRecord IIf(toLatin, "Kirill -> Lotin", "Lotin -> Kirill")
     On Error GoTo Fail
 

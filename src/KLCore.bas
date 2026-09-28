@@ -13,7 +13,7 @@ Attribute VB_Name = "KLCore"
 Option Explicit
 
 Private Const APP_NAME As String = "KirillLotin"
-Public Const KL_VERSION As String = "1.2.0"
+Public Const KL_VERSION As String = "1.3.0"
 
 Private mReady As Boolean
 Private mAscii As Boolean            ' True: ' ishlatiladi, False: U+02BB / U+02BC
@@ -116,6 +116,17 @@ End Sub
 Public Function KL_Ping() As String
     KL_Ping = "OK " & KL_VERSION & " " & KL_CyrToLat(ChrW(&H428) & ChrW(&H430) & ChrW(&H4B3) & ChrW(&H430) & ChrW(&H440))
 End Function
+
+' Office 2003 va undan eski versiyalar uchun asboblar paneli tugmasi
+' (lenta yo'q). Hamma chaqiruvlar kechiktirilgan bog'lanish (Object)
+' orqali - Office kutubxonasiga havola kerak emas.
+Public Sub KL_AddToolbarButton(ByVal bar As Object, ByVal caption As String, ByVal macroName As String)
+    Dim btn As Object
+    Set btn = bar.Controls.Add(Type:=1)     ' msoControlButton
+    btn.Caption = caption
+    btn.Style = 2                           ' msoButtonCaption
+    btn.OnAction = macroName
+End Sub
 
 ' Lenta (Ribbon) uchun umumiy chaqiruvlar.
 ' control ning turi Object: Office kutubxonasiga havola kerak bo'lmasin.

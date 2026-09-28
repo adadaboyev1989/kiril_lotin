@@ -72,7 +72,7 @@ Private Sub ConvertExcel(ByVal toLatin As Boolean)
     End If
 
     Set target = Selection
-    If target.CountLarge = 1 Then
+    If CellCount(target) = 1 Then
         Select Case MsgBox("Faqat bitta katak belgilangan." & vbCrLf & vbCrLf & _
                            "Ha - butun varaqni o'girish" & vbCrLf & _
                            "Yo'q - faqat shu katakni o'girish", _
@@ -84,7 +84,7 @@ Private Sub ConvertExcel(ByVal toLatin As Boolean)
     End If
 
     ' Faqat matnli qiymatlar (formulalar va sonlarga tegilmaydi)
-    If target.CountLarge = 1 Then
+    If CellCount(target) = 1 Then
         Set txtCells = target
     Else
         On Error Resume Next
@@ -98,8 +98,8 @@ Private Sub ConvertExcel(ByVal toLatin As Boolean)
 
     Set mUndoSheet = ActiveSheet
     mUndoCount = 0
-    ReDim mUndoAddr(1 To txtCells.CountLarge)
-    ReDim mUndoVal(1 To txtCells.CountLarge)
+    ReDim mUndoAddr(1 To CLng(CellCount(txtCells)))
+    ReDim mUndoVal(1 To CLng(CellCount(txtCells)))
 
     calc = Application.Calculation
     Application.ScreenUpdating = False
@@ -138,6 +138,39 @@ Done:
 Fail:
     MsgBox "Xatolik: " & Err.Description, vbCritical, KL_Title()
     Resume Done
+End Sub
+
+' Kataklar soni. Range.CountLarge faqat Excel 2010+ da bor, eski
+' versiyalarda Count ishlatiladi (kechiktirilgan bog'lanish orqali).
+Private Function CellCount(ByVal r As Object) As Double
+    On Error Resume Next
+    CellCount = r.CountLarge
+    If Err.Number <> 0 Then
+        Err.Clear
+        CellCount = r.Count
+        If Err.Number <> 0 Then CellCount = 2147483647#
+    End If
+End Function
+
+' Excel 2003 va eskiroq: lenta yo'q, shuning uchun asboblar paneli
+Public Sub KL_ExcelCreateToolbar()
+    Dim bar As Object, prefix As String
+    If Val(Application.Version) >= 12 Then Exit Sub
+    On Error Resume Next
+    Application.CommandBars("Kirill-Lotin").Delete
+    Err.Clear
+    Set bar = Application.CommandBars.Add(Name:="Kirill-Lotin", Position:=1, Temporary:=True)
+    If bar Is Nothing Then Exit Sub
+    prefix = "'" & ThisWorkbook.Name & "'!"
+    KL_AddToolbarButton bar, "Kirill -> Lotin", prefix & "KL_ExcelToLatin"
+    KL_AddToolbarButton bar, "Lotin -> Kirill", prefix & "KL_ExcelToCyrillic"
+    KL_AddToolbarButton bar, "Yordam", prefix & "KL_ShowAbout"
+    bar.Visible = True
+End Sub
+
+Public Sub KL_ExcelDeleteToolbar()
+    On Error Resume Next
+    Application.CommandBars("Kirill-Lotin").Delete
 End Sub
 
 ' Matnni katakka yozadi; son, sana yoki formula bo'lib qolmasligi uchun ' qo'yadi
