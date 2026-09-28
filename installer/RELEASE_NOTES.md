@@ -11,6 +11,12 @@ O'zbek tilidagi matnni **kirill → lotin** va **lotin → kirill** alifbosiga o
 Tezkor tugmalar: **Alt+Shift+L** (Kirill → Lotin), **Alt+Shift+K** (Lotin → Kirill).
 Excel formulalari: `=LOTINGA(A1)`, `=KIRILGA(A1)`.
 
+### 1.4.0 dagi o'zgarishlar — Word'dagi noto'g'ri o'girish tuzatildi
+* Word'da matn harfma-harf o'girilayotgan edi, shuning uchun qo'shni harflarga bog'liq qoidalar ishlamasdi:
+  `келгусида → kyelgusida`, `viloyati → вилойати`, `boshqarma → босҳқарма`, `boshlig‘i → босҳлиг‘и`, `shahar → сҳаҳар`.
+  Endi har bir so'z butunligicha o'giriladi: `kelgusida`, `вилояти`, `бошқарма`, `бошлиғи`, `шаҳар`.
+* Word'dagi so'zma-so'z o'girish Excel'dagi butun matnni o'girish bilan bir xil natija berishi testlar bilan tekshiriladi.
+
 ### 1.3.1 dagi o'zgarishlar — lenta chiqmasligi muammosi
 * O'rnatishdan keyin Word ishga tushirilib, qo'shimcha **haqiqatan yuklanishi** tekshiriladi. Tayyor fayl ishlamasa, qo'shimcha Word/Excel ning o'zi yordamida avtomatik qayta yig'iladi.
 * Office «O'chirilgan elementlar» (Disabled Items) ro'yxatiga kiritgan qo'shimcha u yerdan olib tashlanadi.

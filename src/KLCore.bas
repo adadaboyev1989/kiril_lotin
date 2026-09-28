@@ -13,7 +13,7 @@ Attribute VB_Name = "KLCore"
 Option Explicit
 
 Private Const APP_NAME As String = "KirillLotin"
-Public Const KL_VERSION As String = "1.3.1"
+Public Const KL_VERSION As String = "1.4.0"
 
 Private mReady As Boolean
 Private mAscii As Boolean            ' True: ' ishlatiladi, False: U+02BB / U+02BC
@@ -249,13 +249,26 @@ Public Function KL_IsUrlLike(ByVal token As String) As Boolean
                    (InStr(1, t, "@", vbBinaryCompare) > 0)
 End Function
 
-' Word "Find" uchun wildcard shablon: bitta so'z (harflar ketma-ketligi)
+' Word "Find" uchun wildcard shablon: so'zning BITTA harfi.
+' Diqqat: Word'da "[...]@" butun so'zni emas, ko'pincha bitta harfni
+' topadi. Shuning uchun so'z boshini shu shablon bilan topib, keyin
+' KL_WordCharset belgilari bo'yicha MoveEndWhile bilan kengaytiramiz.
 Public Function KL_WordPattern(ByVal toLatin As Boolean) As String
     InitTables
     If toLatin Then
-        KL_WordPattern = "[" & mCyrLower & mCyrUpper & "]@"
+        KL_WordPattern = "[" & mCyrLower & mCyrUpper & "]"
     Else
-        KL_WordPattern = "[A-Za-z" & mApostrophes & "]@"
+        KL_WordPattern = "[A-Za-z" & mApostrophes & "]"
+    End If
+End Function
+
+' So'z tarkibiga kiradigan belgilar (MoveEndWhile uchun)
+Public Function KL_WordCharset(ByVal toLatin As Boolean) As String
+    InitTables
+    If toLatin Then
+        KL_WordCharset = mCyrLower & mCyrUpper
+    Else
+        KL_WordCharset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" & mApostrophes
     End If
 End Function
 

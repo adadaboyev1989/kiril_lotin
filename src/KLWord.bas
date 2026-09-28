@@ -146,9 +146,10 @@ End Sub
 ' Diapazondagi har bir so'zni topib, o'giradi. O'zgargan so'zlar sonini qaytaradi.
 Private Function ConvertRange(ByVal scope As Range, ByVal toLatin As Boolean) As Long
     Dim rng As Range
-    Dim oldText As String, newText As String
+    Dim oldText As String, newText As String, charset As String
     Dim n As Long
 
+    charset = KL_WordCharset(toLatin)
     Set rng = scope.Duplicate
     rng.Collapse wdCollapseStart
     With rng.Find
@@ -167,6 +168,9 @@ Private Function ConvertRange(ByVal scope As Range, ByVal toLatin As Boolean) As
 
     Do While rng.Find.Execute
         If rng.Start >= scope.End Then Exit Do
+        ' Topilgan harfdan so'z oxirigacha kengaytirish: so'z butunligicha
+        ' o'girilishi shart (sh, ch, ya, o', g', "e" qoidalari qo'shni harflarga bog'liq)
+        rng.MoveEndWhile Cset:=charset, Count:=wdForward
         If rng.End > scope.End Then rng.End = scope.End
 
         oldText = rng.Text

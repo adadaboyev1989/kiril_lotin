@@ -171,3 +171,47 @@ def lat_to_cyr(s):
         out.append(tok if is_url_like(tok) else lat_to_cyr_word(tok))
         i = j
     return "".join(out)
+
+
+# ---------------------------------------------------------------------
+#  Word'dagi ishlash tartibini takrorlash (src/KLWord.bas: ConvertRange)
+#  Word matnni so'zma-so'z o'giradi: so'zning birinchi harfi topiladi,
+#  keyin so'z tarkibidagi belgilar bo'yicha oxirigacha kengaytiriladi.
+# ---------------------------------------------------------------------
+WORD_LAT_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" + APOSTROPHES
+WORD_CYR_CHARS = CYR_LOWER + CYR_UPPER
+
+
+def _word_link_token(s, start, end):
+    """IsInsideLink: bo'shliqlar bilan chegaralangan butun bo'lak."""
+    delims = " \t\r\n\x0b\xa0"
+    a = start
+    while a > 0 and s[a - 1] not in delims:
+        a -= 1
+    b = end
+    while b < len(s) and s[b] not in delims:
+        b += 1
+    return s[a:b]
+
+
+def word_convert(s, to_latin, ascii_apos=False):
+    charset = WORD_CYR_CHARS if to_latin else WORD_LAT_CHARS
+    out = []
+    i, n = 0, len(s)
+    while i < n:
+        if s[i] not in charset:
+            out.append(s[i])
+            i += 1
+            continue
+        j = i
+        while j < n and s[j] in charset:        # MoveEndWhile
+            j += 1
+        word = s[i:j]
+        if to_latin:
+            out.append(cyr_to_lat(word, ascii_apos))
+        elif is_url_like(_word_link_token(s, i, j)):
+            out.append(word)
+        else:
+            out.append(lat_to_cyr_word(word))
+        i = j
+    return "".join(out)

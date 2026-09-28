@@ -13,7 +13,7 @@
 Unicode true
 
 !define APPNAME   "Kirill-Lotin"
-!define APPVER    "1.3.1"
+!define APPVER    "1.4.0"
 !define PUBLISHER "Kirill-Lotin"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\KirillLotin"
 
