@@ -11,6 +11,10 @@ O'zbek tilidagi matnni **kirill → lotin** va **lotin → kirill** alifbosiga o
 Tezkor tugmalar: **Alt+Shift+L** (Kirill → Lotin), **Alt+Shift+K** (Lotin → Kirill).
 Excel formulalari: `=LOTINGA(A1)`, `=KIRILGA(A1)`.
 
+### 1.2.0 dagi o'zgarishlar
+* Word yoki Excel ochiq bo'lsa, o'rnatuvchi (va o'chiruvchi) ochiq Office dasturlari ro'yxatini ko'rsatadi va **«Majburan yopish»** tugmasini taklif qiladi: u barcha ochiq Office dasturlarini (Word, Excel, PowerPoint, Outlook va boshqalar) darhol yopadi. Saqlanmagan o'zgarishlar yo'qoladi, shuning uchun avval ishingizni saqlang.
+* **«Qayta tekshirish»** tugmasi — dasturlarni o'zingiz yopganingizdan keyin davom etish uchun.
+
 ### 1.1.0 dagi o'zgarishlar
 * O'rnatish ancha tezlashdi: qo'shimchalar oldindan tayyorlangan, o'rnatuvchi ularni faqat nusxalaydi va bir marta tekshiradi.
 * «Tezkor tugmalarni o'rnatib bo'lmadi» xatosi tuzatildi: Word tugmalari endi Word ichida avtomatik o'rnatiladi.

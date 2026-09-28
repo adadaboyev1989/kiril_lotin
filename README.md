@@ -31,6 +31,11 @@ Talablar: Windows 7/8/10/11, Microsoft Office 2010 yoki yangiroq (Office 2016/20
 3. `KirillLotin-Setup.exe` ni ishga tushiring va **Keyingi** tugmalarini bosing.
 4. Tayyor! Word yoki Excel ni oching — lentada **Kirill-Lotin** yorlig'i paydo bo'ladi.
 
+Agar Word yoki Excel ochiq bo'lsa, o'rnatuvchi ochiq Office dasturlari ro'yxatini ko'rsatadi:
+
+* **Qayta tekshirish** — dasturlarni o'zingiz (ishingizni saqlab) yopganingizdan keyin bosing;
+* **Majburan yopish** — ro'yxatdagi barcha ochiq Office dasturlarini (Word, Excel, PowerPoint, Outlook, Access, Publisher, OneNote, Visio, Project) darhol yopadi. **Saqlanmagan o'zgarishlar yo'qoladi.**
+
 Administrator huquqi kerak emas. Dastur **Sozlamalar → Ilovalar** (yoki **Boshqaruv paneli → Dasturlar**) ro'yxatida «Kirill-Lotin (Word va Excel uchun)» nomi bilan ko'rinadi va o'sha yerdan o'chiriladi.
 
 > **Windows SmartScreen** «Noma'lum nashriyotchi» deb ogohlantirishi mumkin, chunki fayl raqamli imzo bilan imzolanmagan. **Batafsil → Baribir ishga tushirish** ni bosing.
