@@ -6,6 +6,11 @@ on:
     tags: ['v*']
   pull_request:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Reliz tegi (masalan v1.1.0). Bo'sh qoldirilsa reliz yaratilmaydi."
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -35,10 +40,15 @@ jobs:
           name: KirillLotin-Setup
           path: dist/KirillLotin-Setup.exe
 
-      - name: Relizga qo'shish (v* teglari uchun)
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Relizga qo'shish (v* teglari yoki qo'lda ishga tushirilganda)
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != ''
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.release_tag || github.ref_name }}
+          target_commitish: ${{ github.sha }}
+          name: Kirill-Lotin ${{ inputs.release_tag || github.ref_name }}
+          body_path: installer/RELEASE_NOTES.md
+          make_latest: true
           files: |
             dist/KirillLotin-Setup.exe
             addins/KirillLotin.dotm
