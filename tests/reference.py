@@ -14,11 +14,28 @@ OKINA = "ʻ"   # ʻ  (o‘, g‘)
 TUTUQ = "ʼ"   # ʼ  (tutuq belgisi)
 APOSTROPHES = "'`‘’ʻʼ´"
 
-LAT_VOWELS = "aeiou"
+# Yangi lotin alifbosi (2021): sh -> ş, ch -> ç, g' -> ğ, o' -> ö
+NEW_LOWER = "\u015f\u00e7\u011f\u00f6"   # ş ç ğ ö
+NEW_UPPER = "\u015e\u00c7\u011e\u00d6"   # Ş Ç Ğ Ö
+
+LAT_VOWELS = "aeiou\u00f6"
 
 
-def cyr_base(lower, ascii_apos):
+def lat_upper(t):
+    """ş ç ğ ö ni ham bosh harfga aylantiradi (VBA: LatUpper)."""
+    return "".join(NEW_UPPER[NEW_LOWER.index(c)] if c in NEW_LOWER else c.upper() for c in t)
+
+
+def lat_lower(c):
+    return NEW_LOWER[NEW_UPPER.index(c)] if c in NEW_UPPER else c.lower()
+
+
+def cyr_base(lower, ascii_apos, new_alphabet=True):
     ok = "'" if ascii_apos else OKINA
+    if new_alphabet:
+        special = {"ч": "\u00e7", "ш": "\u015f", "щ": "\u015f", "ў": "\u00f6", "ғ": "\u011f"}
+        if lower in special:
+            return special[lower]
     table = {
         "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "ё": "yo",
         "ж": "j", "з": "z", "и": "i", "й": "y", "к": "k", "л": "l",
@@ -43,7 +60,7 @@ def is_cyr_upper(ch):
     return ch != "" and ch in CYR_UPPER
 
 
-def cyr_to_lat(s, ascii_apos=False):
+def cyr_to_lat(s, ascii_apos=False, new_alphabet=True):
     out = []
     n = len(s)
     for i in range(n):
@@ -68,18 +85,22 @@ def cyr_to_lat(s, ascii_apos=False):
             else:
                 t = "'" if ascii_apos else TUTUQ
         else:
-            t = cyr_base(lc, ascii_apos)
+            t = cyr_base(lc, ascii_apos, new_alphabet)
         if is_cyr_upper(c) and t:
             if len(t) > 1 and (is_cyr_upper(nxt) or (not is_cyr(nxt) and is_cyr_upper(prev))):
-                t = t.upper()
+                t = lat_upper(t)
             else:
-                t = t[0].upper() + t[1:]
+                t = lat_upper(t[0]) + t[1:]
         out.append(t)
     return "".join(out)
 
 
 def is_lat(ch):
-    return ch != "" and ("a" <= ch.lower() <= "z") and ch.isascii()
+    return ch != "" and ((("a" <= ch.lower() <= "z") and ch.isascii()) or ch in NEW_LOWER or ch in NEW_UPPER)
+
+
+def is_lat_upper(ch):
+    return ch != "" and (("A" <= ch <= "Z") or ch in NEW_UPPER)
 
 
 def is_apos(ch):
@@ -113,7 +134,7 @@ def lat_to_cyr_word(s):
             if is_lat(prev) and is_lat(nxt):
                 if prev.lower() == "s" and nxt.lower() == "h":
                     t = ""                      # s'h -> сҳ
-                elif prev.isupper() and nxt.isupper():
+                elif is_lat_upper(prev) and is_lat_upper(nxt):
                     t = "Ъ"
                 else:
                     t = "ъ"
@@ -126,9 +147,11 @@ def lat_to_cyr_word(s):
             out.append(c)
             i += 1
             continue
-        lc = c.lower()
-        ln = nxt.lower()
-        if lc in "og" and is_apos(nxt):
+        lc = lat_lower(c)
+        ln = lat_lower(nxt)
+        if lc in NEW_LOWER:                      # yangi alifbo: ş ç ğ ö
+            t = {"\u015f": "ш", "\u00e7": "ч", "\u011f": "ғ", "\u00f6": "ў"}[lc]
+        elif lc in "og" and is_apos(nxt):
             t = "ў" if lc == "o" else "ғ"
             step = 2
         elif lc == "s" and ln == "h":
@@ -138,13 +161,13 @@ def lat_to_cyr_word(s):
         elif lc == "y" and ln in ("a", "e", "u", "o") and ln != "" and not (ln == "o" and is_apos(nxt2)):
             t = {"a": "я", "e": "е", "u": "ю", "o": "ё"}[ln]; step = 2
         elif lc == "e":
-            if not (is_lat(prev) or is_apos(prev)) or prev.lower() in LAT_VOWELS:
+            if not (is_lat(prev) or is_apos(prev)) or lat_lower(prev) in LAT_VOWELS:
                 t = "э"
             else:
                 t = "е"
         else:
             t = LAT_BASE[lc]
-        if c.isupper():
+        if is_lat_upper(c):
             t = to_upper_cyr(t)
         out.append(t)
         i += step
@@ -178,7 +201,7 @@ def lat_to_cyr(s):
 #  Word matnni so'zma-so'z o'giradi: so'zning birinchi harfi topiladi,
 #  keyin so'z tarkibidagi belgilar bo'yicha oxirigacha kengaytiriladi.
 # ---------------------------------------------------------------------
-WORD_LAT_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" + APOSTROPHES
+WORD_LAT_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" + NEW_LOWER + NEW_UPPER + APOSTROPHES
 WORD_CYR_CHARS = CYR_LOWER + CYR_UPPER
 
 
@@ -194,7 +217,7 @@ def _word_link_token(s, start, end):
     return s[a:b]
 
 
-def word_convert(s, to_latin, ascii_apos=False):
+def word_convert(s, to_latin, ascii_apos=False, new_alphabet=True):
     charset = WORD_CYR_CHARS if to_latin else WORD_LAT_CHARS
     out = []
     i, n = 0, len(s)
@@ -208,7 +231,7 @@ def word_convert(s, to_latin, ascii_apos=False):
             j += 1
         word = s[i:j]
         if to_latin:
-            out.append(cyr_to_lat(word, ascii_apos))
+            out.append(cyr_to_lat(word, ascii_apos, new_alphabet))
         elif is_url_like(_word_link_token(s, i, j)):
             out.append(word)
         else:

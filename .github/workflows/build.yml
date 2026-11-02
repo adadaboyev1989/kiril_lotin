@@ -26,11 +26,17 @@ jobs:
           pip install olefile
           python3 -m unittest discover -s tests -v
 
+      - name: VBA kodini LibreOffice Basic'da ishga tushirib tekshirish
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libreoffice-core
+          python3 tests/vba_libreoffice.py
+
       - name: Word va Excel qo'shimchalarini yasash
         run: python3 installer/build_addins.py
 
       - name: NSIS ni o'rnatish
-        run: sudo apt-get update && sudo apt-get install -y nsis
+        run: sudo apt-get install -y nsis
 
       - name: KirillLotin-Setup.exe ni yig'ish
         run: makensis -V2 installer/KirillLotin.nsi

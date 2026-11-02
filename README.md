@@ -101,32 +101,32 @@ Bu usulda lenta yorlig'i bo'lmaydi, lekin makroslarni tezkor panelga yoki tugmal
 
 ## Transliteratsiya qoidalari
 
-Rasmiy o'zbek lotin alifbosi (1995) qoidalari asosida:
+Sukut bo'yicha **yangi lotin alifbosi** ishlatiladi: `sh → ş`, `ch → ç`, `g‘ → ğ`, `o‘ → ö`. Lentadagi **«Yangi alifbo (ş, ç, ğ, ö)»** belgisini olib tashlasangiz, eski alifbo (sh, ch, g‘, o‘) ishlatiladi. Lotindan kirillga o'girishda **ikkala yozuv ham** tushuniladi (aralash matn ham).
 
-| Kirill | Lotin | Izoh |
-|---|---|---|
-| Ў ў | Oʻ oʻ | |
-| Ғ ғ | Gʻ gʻ | |
-| Қ қ | Q q | |
-| Ҳ ҳ | H h | |
-| Х х | X x | |
-| Ш ш, Щ щ | Sh sh | |
-| Ч ч | Ch ch | |
-| Ж ж | J j | |
-| Й й | Y y | |
-| Ё ё | Yo yo | |
-| Ю ю | Yu yu | |
-| Я я | Ya ya | |
-| Е е | Ye ye / E e | so'z boshida, unli, `ъ`, `ь` dan keyin — **ye** (ер → yer, поезд → poyezd), qolgan holatda — **e** |
-| Э э | E e | |
-| Ц ц | S s / Ts ts | unlidan keyin — **ts** (милиция → militsiya), qolgan holatda — **s** (цирк → sirk) |
-| Ъ ъ | ʼ | `е, ё, ю, я` oldidan tushib qoladi (объект → obyekt) |
-| Ь ь | — | tushib qoladi |
-| Ы ы | I i | |
+| Kirill | Yangi alifbo | Eski alifbo | Izoh |
+|---|---|---|---|
+| Ш ш, Щ щ | Ş ş | Sh sh | |
+| Ч ч | Ç ç | Ch ch | |
+| Ғ ғ | Ğ ğ | Gʻ gʻ | |
+| Ў ў | Ö ö | Oʻ oʻ | |
+| Қ қ | Q q | Q q | |
+| Ҳ ҳ | H h | H h | |
+| Х х | X x | X x | |
+| Ж ж | J j | J j | |
+| Й й | Y y | Y y | |
+| Ё ё | Yo yo | Yo yo | |
+| Ю ю | Yu yu | Yu yu | |
+| Я я | Ya ya | Ya ya | |
+| Е е | Ye ye / E e | Ye ye / E e | so'z boshida, unli, `ъ`, `ь` dan keyin — **ye** (ер → yer, поезд → poyezd), qolgan holatda — **e** (келгусида → kelgusida) |
+| Э э | E e | E e | |
+| Ц ц | S s / Ts ts | S s / Ts ts | unlidan keyin — **ts** (милиция → militsiya), qolgan holatda — **s** (цирк → sirk) |
+| Ъ ъ | ʼ | ʼ | `е, ё, ю, я` oldidan tushib qoladi (объект → obyekt) |
+| Ь ь | — | — | tushib qoladi |
+| Ы ы | I i | I i | |
 
-Bosh harflar: `Шаҳар → Shahar`, `ШАҲАР → SHAHAR`.
+Misollar (yangi alifbo): `Тошкент шаҳар ҳокимлиги → Toşkent şahar hokimligi`, `Ўзбекистон → Özbekiston`, `чой → çoy`, `тоғ → toğ`, `ЧИРЧИҚ → ÇIRÇIQ`.
 
-Lotindan kirillga: `sh → ш`, `ch → ч`, `oʻ/o' → ў`, `gʻ/g' → ғ`, `yo/yu/ya/ye → ё/ю/я/е` (`yo'l → йўл`), `e` so'z boshida va unlidan keyin `э` (ekin → экин, poeziya → поэзия), harflar orasidagi apostrof `ъ` (ma'no → маъно), `s'h → сҳ` (Is'hoq → Исҳоқ).
+Lotindan kirillga: `ş/sh → ш`, `ç/ch → ч`, `ğ/gʻ/g' → ғ`, `ö/oʻ/o' → ў`, `yo/yu/ya/ye → ё/ю/я/е` (`yöl`, `yo'l → йўл`), `e` so'z boshida va unlidan keyin `э` (ekin → экин, poeziya → поэзия), harflar orasidagi apostrof `ъ` (ma'no → маъно), `s'h → сҳ` (Is'hoq → Исҳоқ).
 
 ### Cheklovlar
 
@@ -170,6 +170,15 @@ python -m unittest -v
 ```
 
 Qoidani o'zgartirsangiz, `src/KLCore.bas` va `tests/reference.py` ni birga yangilang.
+
+VBA kodining o'zini ham Office'siz tekshirish mumkin — `src/KLCore.bas` LibreOffice Basic'da (VBA moslik rejimida) ishga tushiriladi va natijalar Python nusxasi bilan solishtiriladi:
+
+```
+sudo apt install libreoffice-core
+python3 tests/vba_libreoffice.py
+```
+
+GitHub Actions har bir yig'ishda ikkala tekshiruvni ham bajaradi.
 
 ### Qo'shimchalar va EXE ni qayta yig'ish
 

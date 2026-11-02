@@ -20,10 +20,16 @@
                   onAction="KL_RibbonToCyrillic"/>
         </group>
         <group id="klGroupOptions" label="Sozlamalar">
+          <checkBox id="klNew"
+                    label="Yangi alifbo (&#351;, &#231;, &#287;, &#246;)"
+                    screentip="Yangi lotin alifbosi"
+                    supertip="Belgilansa (sukut bo&#699;yicha), kirilldan lotinga o&#699;girishda sh &#8594; &#351;, ch &#8594; &#231;, g&#699; &#8594; &#287;, o&#699; &#8594; &#246; yoziladi. Belgi olib tashlansa, eski alifbo (sh, ch, g&#699;, o&#699;) ishlatiladi. Lotindan kirillga o&#699;girishda ikkala yozuv ham tushuniladi."
+                    getPressed="KL_RibbonGetNew"
+                    onAction="KL_RibbonSetNew"/>
           <checkBox id="klAscii"
                     label="Oddiy apostrof (')"
                     screentip="Oddiy apostrof"
-                    supertip="Belgilansa, o&#699; va g&#699; harflarida oddiy ' belgisi ishlatiladi. Aks holda rasmiy imlodagi &#699; va &#700; belgilari qo&#699;yiladi."
+                    supertip="Eski alifboda: belgilansa, o&#699; va g&#699; harflarida oddiy ' belgisi ishlatiladi. Aks holda rasmiy imlodagi &#699; va &#700; belgilari qo&#699;yiladi. Tutuq belgisi (ma&#700;no) uchun ikkala alifboda ham amal qiladi."
                     getPressed="KL_RibbonGetAscii"
                     onAction="KL_RibbonSetAscii"/>
           <button id="klAbout"

@@ -9,7 +9,15 @@ O'zbek tilidagi matnni **kirill → lotin** va **lotin → kirill** alifbosiga o
 4. Word yoki Excel ni oching — lentada **Kirill-Lotin** yorlig'i paydo bo'ladi.
 
 Tezkor tugmalar: **Alt+Shift+L** (Kirill → Lotin), **Alt+Shift+K** (Lotin → Kirill).
+Lotin yozuvi: sukut bo'yicha yangi alifbo (ş, ç, ğ, ö); lentadagi belgi orqali eski alifboga o'tish mumkin.
 Excel formulalari: `=LOTINGA(A1)`, `=KIRILGA(A1)`.
+
+### 1.5.0 dagi o'zgarishlar — yangi lotin alifbosi
+* Kirilldan lotinga o'girishda sukut bo'yicha **yangi alifbo**: `sh → ş`, `ch → ç`, `g‘ → ğ`, `o‘ → ö`.
+  Masalan: `Тошкент шаҳар ҳокимлиги → Toşkent şahar hokimligi`, `Ўзбекистон → Özbekiston`, `чой → çoy`, `тоғ → toğ`.
+* Lentada **«Yangi alifbo (ş, ç, ğ, ö)»** belgisi: olib tashlansa, eski alifbo (sh, ch, g‘, o‘) ishlatiladi.
+* Lotindan kirillga o'girishda ikkala yozuv ham tushuniladi: `şahar` va `shahar` → `шаҳар`, `Özbekiston` va `O‘zbekiston` → `Ўзбекистон`.
+* VBA kodi endi LibreOffice Basic'da haqiqatan ishga tushirilib, 272 ta holatda tekshiriladi.
 
 ### 1.4.0 dagi o'zgarishlar — Word'dagi noto'g'ri o'girish tuzatildi
 * Word'da matn harfma-harf o'girilayotgan edi, shuning uchun qo'shni harflarga bog'liq qoidalar ishlamasdi:

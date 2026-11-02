@@ -13,10 +13,13 @@ Attribute VB_Name = "KLCore"
 Option Explicit
 
 Private Const APP_NAME As String = "KirillLotin"
-Public Const KL_VERSION As String = "1.4.0"
+Public Const KL_VERSION As String = "1.5.0"
 
 Private mReady As Boolean
 Private mAscii As Boolean            ' True: ' ishlatiladi, False: U+02BB / U+02BC
+Private mNew As Boolean              ' True: yangi lotin alifbosi (sh->s-cedilla, ch->c-cedilla, g'->g-breve, o'->o-umlaut)
+Private mNewLower As String          ' yangi alifbo harflari (kichik): s-cedilla c-cedilla g-breve o-umlaut
+Private mNewUpper As String          ' ularning bosh harflari
 Private mCyrLower As String          ' kichik kirill harflar
 Private mCyrUpper As String          ' ularga mos bosh harflar
 Private mCyrVowels As String         ' kirill unlilar
@@ -73,7 +76,12 @@ Private Sub InitTables()
     mLatBase(24) = ChrW(&H439)  ' y
     mLatBase(25) = ChrW(&H437)  ' z
 
+    ' Yangi lotin alifbosi harflari
+    mNewLower = ChrW(&H15F) & ChrW(&HE7) & ChrW(&H11F) & ChrW(&HF6)
+    mNewUpper = ChrW(&H15E) & ChrW(&HC7) & ChrW(&H11E) & ChrW(&HD6)
+
     mAscii = (GetSetting(APP_NAME, "Options", "AsciiApostrophe", "0") = "1")
+    mNew = (GetSetting(APP_NAME, "Options", "NewAlphabet", "1") = "1")
     mReady = True
 End Sub
 
@@ -89,6 +97,17 @@ Public Sub KL_SetAsciiApostrophe(ByVal value As Boolean)
     InitTables
     mAscii = value
     SaveSetting APP_NAME, "Options", "AsciiApostrophe", IIf(value, "1", "0")
+End Sub
+
+Public Function KL_NewAlphabet() As Boolean
+    InitTables
+    KL_NewAlphabet = mNew
+End Function
+
+Public Sub KL_SetNewAlphabet(ByVal value As Boolean)
+    InitTables
+    mNew = value
+    SaveSetting APP_NAME, "Options", "NewAlphabet", IIf(value, "1", "0")
 End Sub
 
 Public Function KL_Title() As String
@@ -107,14 +126,19 @@ Public Sub KL_ShowAbout()
         "  Alt+Shift+K  -  Lotin -> Kirill" & vbCrLf & vbCrLf & _
         "Excel formulalari:" & vbCrLf & _
         "  =LOTINGA(A1)   =KIRILGA(A1)" & vbCrLf & vbCrLf & _
-        "'Oddiy apostrof' belgilansa, o' va g' uchun oddiy ' belgisi," & vbCrLf & _
-        "aks holda rasmiy imlodagi " & ChrW(&H2BB) & " va " & ChrW(&H2BC) & " belgilari ishlatiladi.", _
+        "Lotin alifbosi:" & vbCrLf & _
+        "  'Yangi alifbo' belgilangan (sukut bo'yicha): sh -> " & ChrW(&H15F) & ", ch -> " & ChrW(&HE7) & _
+        ", g' -> " & ChrW(&H11F) & ", o' -> " & ChrW(&HF6) & vbCrLf & _
+        "  Belgi olib tashlansa: eski alifbo (sh, ch, g" & ChrW(&H2BB) & ", o" & ChrW(&H2BB) & ")." & vbCrLf & _
+        "  Eski alifboda 'Oddiy apostrof' belgilansa, o' va g' uchun oddiy ' ishlatiladi." & vbCrLf & _
+        "  Lotindan kirillga o'girishda ikkala yozuv ham tushuniladi.", _
         vbInformation, KL_Title()
 End Sub
 
 ' O'rnatuvchi qo'shimcha ishlayotganini shu funksiya orqali tekshiradi
 Public Function KL_Ping() As String
-    KL_Ping = "OK " & KL_VERSION & " " & KL_CyrToLat(ChrW(&H428) & ChrW(&H430) & ChrW(&H4B3) & ChrW(&H430) & ChrW(&H440))
+    ' Sozlamalardan qat'i nazar eski alifbo bilan: natija har doim "Shahar"
+    KL_Ping = "OK " & KL_VERSION & " " & CyrToLatEx(ChrW(&H428) & ChrW(&H430) & ChrW(&H4B3) & ChrW(&H430) & ChrW(&H440), False, True)
 End Function
 
 ' Office 2003 va undan eski versiyalar uchun asboblar paneli tugmasi
@@ -132,6 +156,14 @@ End Sub
 ' control ning turi Object: Office kutubxonasiga havola kerak bo'lmasin.
 Public Sub KL_RibbonGetAscii(control As Object, ByRef returnedVal)
     returnedVal = KL_AsciiApostrophe()
+End Sub
+
+Public Sub KL_RibbonGetNew(control As Object, ByRef returnedVal)
+    returnedVal = KL_NewAlphabet()
+End Sub
+
+Public Sub KL_RibbonSetNew(control As Object, pressed As Boolean)
+    KL_SetNewAlphabet pressed
 End Sub
 
 Public Sub KL_RibbonSetAscii(control As Object, pressed As Boolean)
@@ -175,14 +207,39 @@ Private Function IsLat(ByVal ch As String) As Boolean
     Dim code As Long
     If Len(ch) <> 1 Then Exit Function
     code = AscW(ch)
-    IsLat = (code >= 65 And code <= 90) Or (code >= 97 And code <= 122)
+    IsLat = (code >= 65 And code <= 90) Or (code >= 97 And code <= 122) Or _
+            (InStr(1, mNewLower & mNewUpper, ch, vbBinaryCompare) > 0)
 End Function
 
 Private Function IsLatUpper(ByVal ch As String) As Boolean
     Dim code As Long
     If Len(ch) <> 1 Then Exit Function
     code = AscW(ch)
-    IsLatUpper = (code >= 65 And code <= 90)
+    IsLatUpper = (code >= 65 And code <= 90) Or (InStr(1, mNewUpper, ch, vbBinaryCompare) > 0)
+End Function
+
+' Lotin harfni kichik/bosh harfga o'tkazish (yangi alifbo harflari ham).
+' UCase$/LCase$ ga tayanmaymiz: Windows tiliga qarab natija farq qilishi mumkin.
+Private Function LatLower(ByVal ch As String) As String
+    Dim p As Long
+    LatLower = LCase$(ch)
+    If Len(ch) <> 1 Then Exit Function
+    p = InStr(1, mNewUpper, ch, vbBinaryCompare)
+    If p > 0 Then LatLower = Mid$(mNewLower, p, 1)
+End Function
+
+Private Function LatUpper(ByVal t As String) As String
+    Dim i As Long, ch As String, p As Long, res As String
+    For i = 1 To Len(t)
+        ch = Mid$(t, i, 1)
+        p = InStr(1, mNewLower, ch, vbBinaryCompare)
+        If p > 0 Then
+            res = res & Mid$(mNewUpper, p, 1)
+        Else
+            res = res & UCase$(ch)
+        End If
+    Next i
+    LatUpper = res
 End Function
 
 Private Function IsApos(ByVal ch As String) As Boolean
@@ -202,7 +259,15 @@ Private Function CharAt(ByRef s As String, ByVal i As Long) As String
 End Function
 
 ' Kichik kirill harfning asosiy lotincha ko'rinishi
-Private Function CyrBase(ByVal code As Long, ByVal okina As String) As String
+Private Function CyrBase(ByVal code As Long, ByVal okina As String, ByVal newAlpha As Boolean) As String
+    If newAlpha Then
+        Select Case code
+            Case &H447: CyrBase = ChrW(&HE7): Exit Function            ' ch -> c-cedilla
+            Case &H448, &H449: CyrBase = ChrW(&H15F): Exit Function    ' sh -> s-cedilla
+            Case &H45E: CyrBase = ChrW(&HF6): Exit Function            ' o' -> o-umlaut
+            Case &H493: CyrBase = ChrW(&H11F): Exit Function           ' g' -> g-breve
+        End Select
+    End If
     Select Case code
         Case &H430: CyrBase = "a"
         Case &H431: CyrBase = "b"
@@ -258,7 +323,7 @@ Public Function KL_WordPattern(ByVal toLatin As Boolean) As String
     If toLatin Then
         KL_WordPattern = "[" & mCyrLower & mCyrUpper & "]"
     Else
-        KL_WordPattern = "[A-Za-z" & mApostrophes & "]"
+        KL_WordPattern = "[A-Za-z" & mNewLower & mNewUpper & mApostrophes & "]"
     End If
 End Function
 
@@ -268,7 +333,7 @@ Public Function KL_WordCharset(ByVal toLatin As Boolean) As String
     If toLatin Then
         KL_WordCharset = mCyrLower & mCyrUpper
     Else
-        KL_WordCharset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" & mApostrophes
+        KL_WordCharset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" & mNewLower & mNewUpper & mApostrophes
     End If
 End Function
 
@@ -276,13 +341,18 @@ End Function
 '  KIRILL -> LOTIN
 ' ---------------------------------------------------------------------
 Public Function KL_CyrToLat(ByVal s As String) As String
+    InitTables
+    KL_CyrToLat = CyrToLatEx(s, mNew, mAscii)
+End Function
+
+Private Function CyrToLatEx(ByVal s As String, ByVal newAlpha As Boolean, ByVal asciiApos As Boolean) As String
     Dim i As Long, n As Long
     Dim c As String, prevC As String, nextC As String
     Dim lc As String, lp As String, ln As String, t As String, res As String
     Dim okina As String, tutuq As String
 
     InitTables
-    If mAscii Then
+    If asciiApos Then
         okina = "'"
         tutuq = "'"
     Else
@@ -324,20 +394,20 @@ Public Function KL_CyrToLat(ByVal s As String) As String
                         t = tutuq
                     End If
                 Case Else
-                    t = CyrBase(AscW(lc), okina)
+                    t = CyrBase(AscW(lc), okina, newAlpha)
             End Select
 
             If IsCyrUpper(c) And Len(t) > 0 Then
                 If Len(t) > 1 And (IsCyrUpper(nextC) Or (Not IsCyr(nextC) And IsCyrUpper(prevC))) Then
-                    t = UCase$(t)                              ' SH, CH, YO ... (bosh harfli so'z)
+                    t = LatUpper(t)                            ' SH, CH, YO ... (bosh harfli so'z)
                 Else
-                    t = UCase$(Left$(t, 1)) & Mid$(t, 2)       ' Sh, Ch, Yo ...
+                    t = LatUpper(Left$(t, 1)) & Mid$(t, 2)     ' Sh, Ch, Yo, S-cedilla ...
                 End If
             End If
             res = res & t
         End If
     Next i
-    KL_CyrToLat = res
+    CyrToLatEx = res
 End Function
 
 ' ---------------------------------------------------------------------
@@ -374,9 +444,17 @@ Public Function KL_LatToCyrWord(ByVal s As String) As String
         ElseIf Not IsLat(c) Then
             t = c
         Else
-            lc = LCase$(c)
-            ln = LCase$(nextC)
-            If (lc = "o" Or lc = "g") And IsApos(nextC) Then
+            lc = LatLower(c)
+            ln = LatLower(nextC)
+            If InStr(1, mNewLower, lc, vbBinaryCompare) > 0 And Len(lc) = 1 Then
+                ' yangi alifbo: s-cedilla -> sh, c-cedilla -> ch, g-breve -> g', o-umlaut -> o'
+                Select Case AscW(lc)
+                    Case &H15F: t = ChrW(&H448)
+                    Case &HE7: t = ChrW(&H447)
+                    Case &H11F: t = ChrW(&H493)
+                    Case &HF6: t = ChrW(&H45E)
+                End Select
+            ElseIf (lc = "o" Or lc = "g") And IsApos(nextC) Then
                 If lc = "o" Then t = ChrW(&H45E) Else t = ChrW(&H493)
                 stepN = 2
             ElseIf lc = "s" And ln = "h" Then
@@ -396,7 +474,7 @@ Public Function KL_LatToCyrWord(ByVal s As String) As String
             ElseIf lc = "e" Then
                 If Not (IsLat(prevC) Or IsApos(prevC)) Then
                     t = ChrW(&H44D)               ' so'z boshida
-                ElseIf InStr(1, "aeiou", LCase$(prevC), vbBinaryCompare) > 0 Then
+                ElseIf InStr(1, "aeiou" & ChrW(&HF6), LatLower(prevC), vbBinaryCompare) > 0 Then
                     t = ChrW(&H44D)               ' unlidan keyin
                 Else
                     t = ChrW(&H435)
