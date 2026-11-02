@@ -14,6 +14,10 @@ Tezkor tugmalar: **Alt+Shift+L** (Kirill → Lotin), **Alt+Shift+K** (Lotin → 
 Lotin yozuvi: sukut bo'yicha yangi alifbo (ş, ç, ğ, ö); lentadagi belgi orqali eski alifboga o'tish mumkin.
 Excel formulalari: `=LOTINGA(A1)`, `=KIRILGA(A1)`.
 
+### 1.5.2 dagi o'zgarishlar — muhim tuzatish
+* 1.5.1 da VBA «Compile error: Only comments may appear after End Sub, End Function, or End Property» xatosini berib, qo'shimcha umuman ishlamas edi (`MessageBoxW` e'loni modulning o'rtasida turgan edi). E'lon modul boshiga ko'chirildi.
+* Yangi avtomatik test VBA modullarining tuzilishini tekshiradi (e'lonlar joylashuvi, qator davomlari soni, yopilmagan bloklar) — bunday xato endi reliz chiqmasdan oldin ushlanadi.
+
 ### 1.5.1 dagi o'zgarishlar
 * «Yordam» oynasiga muallif haqida maʼlumot qoʼshildi.
 * «Yordam» oynasi Unicode oynada ochiladi — ş, ç, ğ, ö, ʼ harflari Windows tilidan qatʼi nazar toʼgʼri koʻrinadi.

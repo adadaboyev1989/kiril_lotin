@@ -13,7 +13,7 @@ Attribute VB_Name = "KLCore"
 Option Explicit
 
 Private Const APP_NAME As String = "KirillLotin"
-Public Const KL_VERSION As String = "1.5.1"
+Public Const KL_VERSION As String = "1.5.2"
 
 Private mReady As Boolean
 Private mAscii As Boolean            ' True: ' ishlatiladi, False: U+02BB / U+02BC
@@ -25,6 +25,20 @@ Private mCyrUpper As String          ' ularga mos bosh harflar
 Private mCyrVowels As String         ' kirill unlilar
 Private mApostrophes As String       ' lotin matnida apostrof sifatida qabul qilinadigan belgilar
 Private mLatBase(0 To 25) As String  ' a..z -> kirill harf
+
+' --- WINAPI-DECL BEGIN ------------------------------------------------
+' VBA ning MsgBox oynasi matnni ANSI kodlashga o'tkazadi, shuning uchun
+' s-cedilla, o-umlaut, tutuq kabi harflar "?" bo'lib qolishi mumkin.
+' Windows'ning Unicode oynasi (MessageBoxW) ishlatiladi; VBA7 (Office
+' 2010+, 32/64 bit) va VBA6 (Office 2003/2007) uchun alohida e'lon.
+' DIQQAT: Declare faqat modul boshida (birinchi Sub/Function dan oldin)
+' turishi mumkin - aks holda butun modul kompilyatsiya bo'lmaydi.
+#If VBA7 Then
+Private Declare PtrSafe Function MessageBoxW Lib "user32" (ByVal hWnd As LongPtr, ByVal lpText As LongPtr, ByVal lpCaption As LongPtr, ByVal uType As Long) As Long
+#Else
+Private Declare Function MessageBoxW Lib "user32" (ByVal hWnd As Long, ByVal lpText As Long, ByVal lpCaption As Long, ByVal uType As Long) As Long
+#End If
+' --- WINAPI-DECL END --------------------------------------------------
 
 ' ---------------------------------------------------------------------
 '  Jadvallar
@@ -115,16 +129,7 @@ Public Function KL_Title() As String
 End Function
 
 ' --- WINAPI BEGIN -----------------------------------------------------
-' VBA ning MsgBox oynasi matnni ANSI kodlashga o'tkazadi, shuning uchun
-' s-cedilla, o-umlaut, tutuq kabi harflar "?" bo'lib qolishi mumkin.
-' Windows'ning Unicode oynasi (MessageBoxW) ishlatiladi; VBA7 (Office
-' 2010+, 32/64 bit) va VBA6 (Office 2003/2007) uchun alohida e'lon.
-#If VBA7 Then
-Private Declare PtrSafe Function MessageBoxW Lib "user32" (ByVal hWnd As LongPtr, ByVal lpText As LongPtr, ByVal lpCaption As LongPtr, ByVal uType As Long) As Long
-#Else
-Private Declare Function MessageBoxW Lib "user32" (ByVal hWnd As Long, ByVal lpText As Long, ByVal lpCaption As Long, ByVal uType As Long) As Long
-#End If
-
+' Unicode xabar oynasi (MessageBoxW e'loni modul boshida)
 Public Sub KL_UnicodeMsg(ByVal text As String, ByVal title As String, ByVal flags As Long)
     On Error GoTo Fallback
     ' &H2000 = MB_TASKMODAL, &H10000 = MB_SETFOREGROUND

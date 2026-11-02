@@ -33,6 +33,7 @@ core = open(ROOT + '/src/KLCore.bas', encoding='ascii').read().replace('\r\n', '
 core = '\n'.join(l for l in core.split('\n') if not l.startswith('Attribute VB_'))
 # Windows API (MessageBoxW) LibreOffice'da yo'q - bu qism test paytida olib tashlanadi
 core = re.sub(r"' --- WINAPI BEGIN.*?' --- WINAPI END[^\n]*\n", '', core, flags=re.S)
+core = re.sub(r"' --- WINAPI-DECL BEGIN.*?' --- WINAPI-DECL END[^\n]*\n", '', core, flags=re.S)
 core = 'Option VBASupport 1\n' + core.replace('Option Explicit', '')
 
 harness = r'''Option VBASupport 1
