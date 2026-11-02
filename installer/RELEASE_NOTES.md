@@ -1,5 +1,7 @@
 ## Kirill-Lotin — Word va Excel uchun
 
+Muallif: Namangan şahar taʼlim bölimi AKT mutaxassisi Dadaboyev Abdurahmon Abduqahhorovich
+
 O'zbek tilidagi matnni **kirill → lotin** va **lotin → kirill** alifbosiga o'giradigan qo'shimcha.
 
 ### O'rnatish
@@ -11,6 +13,10 @@ O'zbek tilidagi matnni **kirill → lotin** va **lotin → kirill** alifbosiga o
 Tezkor tugmalar: **Alt+Shift+L** (Kirill → Lotin), **Alt+Shift+K** (Lotin → Kirill).
 Lotin yozuvi: sukut bo'yicha yangi alifbo (ş, ç, ğ, ö); lentadagi belgi orqali eski alifboga o'tish mumkin.
 Excel formulalari: `=LOTINGA(A1)`, `=KIRILGA(A1)`.
+
+### 1.5.1 dagi o'zgarishlar
+* «Yordam» oynasiga muallif haqida maʼlumot qoʼshildi.
+* «Yordam» oynasi Unicode oynada ochiladi — ş, ç, ğ, ö, ʼ harflari Windows tilidan qatʼi nazar toʼgʼri koʻrinadi.
 
 ### 1.5.0 dagi o'zgarishlar — yangi lotin alifbosi
 * Kirilldan lotinga o'girishda sukut bo'yicha **yangi alifbo**: `sh → ş`, `ch → ç`, `g‘ → ğ`, `o‘ → ö`.

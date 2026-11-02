@@ -31,6 +31,8 @@ if not os.path.isdir(PROFILE + '/user/basic/Standard'):
 std = PROFILE + '/user/basic/Standard'
 core = open(ROOT + '/src/KLCore.bas', encoding='ascii').read().replace('\r\n', '\n')
 core = '\n'.join(l for l in core.split('\n') if not l.startswith('Attribute VB_'))
+# Windows API (MessageBoxW) LibreOffice'da yo'q - bu qism test paytida olib tashlanadi
+core = re.sub(r"' --- WINAPI BEGIN.*?' --- WINAPI END[^\n]*\n", '', core, flags=re.S)
 core = 'Option VBASupport 1\n' + core.replace('Option Explicit', '')
 
 harness = r'''Option VBASupport 1
@@ -38,6 +40,8 @@ Function GetSetting(a, b, c, d)
     GetSetting = d
 End Function
 Sub SaveSetting(a, b, c, d)
+End Sub
+Sub KL_UnicodeMsg(t, c, f)
 End Sub
 Sub Main
     Dim sfa As Object, inp As Object, outp As Object, ti As Object, tout As Object
@@ -65,6 +69,7 @@ Sub Main
                 Case "lat": res = KL_LatToCyr(txt)
                 Case "latword": res = KL_LatToCyrWord(txt)
                 Case "ping": res = KL_Ping()
+                Case "author": res = Replace(KL_Author(), Chr(13) & Chr(10), " / ")
             End Select
             tout.writeString(res & Chr(10))
         End If
@@ -96,6 +101,7 @@ for src, _ in T.LAT_CYR + T.WORD_LAT_CYR + T.NEW_LAT_CYR:
         cases.append(('latword', w, R.lat_to_cyr_word(w)))
 version = re.search(r'KL_VERSION As String = "([^"]+)"', open(ROOT + '/src/KLCore.bas').read()).group(1)
 cases.append(('ping', 'x', 'OK %s Shahar' % version))
+cases.append(('author', 'x', 'Namangan \u015fahar ta\u02bclim b\u00f6limi AKT mutaxassisi / Dadaboyev Abdurahmon Abduqahhorovich'))
 with open(W + '/cases.txt', 'w', encoding='utf-8') as f:
     for m, src, _ in cases:
         f.write(m + '\t' + src + '\n')

@@ -1,4 +1,4 @@
-; =====================================================================
+﻿; =====================================================================
 ;  Kirill-Lotin - Word va Excel uchun o'rnatuvchi (NSIS 3)
 ;
 ;  Yig'ish:  python3 installer/build_addins.py
@@ -13,8 +13,8 @@
 Unicode true
 
 !define APPNAME   "Kirill-Lotin"
-!define APPVER    "1.5.0"
-!define PUBLISHER "Kirill-Lotin"
+!define APPVER    "1.5.1"
+!define PUBLISHER "Dadaboyev Abdurahmon Abduqahhorovich"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\KirillLotin"
 
 Name "${APPNAME}"
@@ -37,7 +37,7 @@ BrandingText "${APPNAME} ${APPVER}"
 !define MUI_ABORTWARNING
 
 !define MUI_WELCOMEPAGE_TITLE "Kirill-Lotin o'rnatuvchisi"
-!define MUI_WELCOMEPAGE_TEXT "Bu dastur Microsoft Word va Excel ga o'zbek tilidagi matnni kirill alifbosidan lotin alifbosiga va lotindan kirillga o'giradigan qo'shimchani o'rnatadi.$\r$\n$\r$\nDavom etishdan oldin Word va Excel oynalarini yoping.$\r$\n$\r$\n$_CLICK"
+!define MUI_WELCOMEPAGE_TEXT "Bu dastur Microsoft Word va Excel ga o'zbek tilidagi matnni kirill alifbosidan lotin alifbosiga va lotindan kirillga o'giradigan qo'shimchani o'rnatadi.$\r$\n$\r$\nDavom etishdan oldin Word va Excel oynalarini yoping.$\r$\n$\r$\nMuallif: Namangan şahar taʼlim bölimi AKT mutaxassisi Dadaboyev Abdurahmon Abduqahhorovich$\r$\n$\r$\n$_CLICK"
 !define MUI_FINISHPAGE_TITLE "O'rnatish tugadi"
 !define MUI_FINISHPAGE_TEXT "Word yoki Excel ni oching - lentada $\"Kirill-Lotin$\" yorlig'i paydo bo'ladi.$\r$\n$\r$\nTezkor tugmalar:$\r$\n   Alt+Shift+L  -  Kirill > Lotin$\r$\n   Alt+Shift+K  -  Lotin > Kirill$\r$\n$\r$\nExcel formulalari: =LOTINGA(A1), =KIRILGA(A1)$\r$\n$\r$\nOffice 2003 da tugmalar $\"Kirill-Lotin$\" asboblar panelida chiqadi."
 !define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\README.md"
@@ -59,7 +59,7 @@ VIAddVersionKey /LANG=${LANG_UZBEK} "ProductVersion"  "${APPVER}"
 VIAddVersionKey /LANG=${LANG_UZBEK} "FileVersion"     "${APPVER}"
 VIAddVersionKey /LANG=${LANG_UZBEK} "FileDescription" "Kirill-Lotin: Word va Excel uchun o'rnatuvchi"
 VIAddVersionKey /LANG=${LANG_UZBEK} "CompanyName"     "${PUBLISHER}"
-VIAddVersionKey /LANG=${LANG_UZBEK} "LegalCopyright"  "${PUBLISHER}"
+VIAddVersionKey /LANG=${LANG_UZBEK} "LegalCopyright"  "© ${PUBLISHER}"
 
 Var PowerShell
 

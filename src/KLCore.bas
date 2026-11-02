@@ -13,7 +13,7 @@ Attribute VB_Name = "KLCore"
 Option Explicit
 
 Private Const APP_NAME As String = "KirillLotin"
-Public Const KL_VERSION As String = "1.5.0"
+Public Const KL_VERSION As String = "1.5.1"
 
 Private mReady As Boolean
 Private mAscii As Boolean            ' True: ' ishlatiladi, False: U+02BB / U+02BC
@@ -114,8 +114,36 @@ Public Function KL_Title() As String
     KL_Title = "Kirill-Lotin " & KL_VERSION
 End Function
 
+' --- WINAPI BEGIN -----------------------------------------------------
+' VBA ning MsgBox oynasi matnni ANSI kodlashga o'tkazadi, shuning uchun
+' s-cedilla, o-umlaut, tutuq kabi harflar "?" bo'lib qolishi mumkin.
+' Windows'ning Unicode oynasi (MessageBoxW) ishlatiladi; VBA7 (Office
+' 2010+, 32/64 bit) va VBA6 (Office 2003/2007) uchun alohida e'lon.
+#If VBA7 Then
+Private Declare PtrSafe Function MessageBoxW Lib "user32" (ByVal hWnd As LongPtr, ByVal lpText As LongPtr, ByVal lpCaption As LongPtr, ByVal uType As Long) As Long
+#Else
+Private Declare Function MessageBoxW Lib "user32" (ByVal hWnd As Long, ByVal lpText As Long, ByVal lpCaption As Long, ByVal uType As Long) As Long
+#End If
+
+Public Sub KL_UnicodeMsg(ByVal text As String, ByVal title As String, ByVal flags As Long)
+    On Error GoTo Fallback
+    ' &H2000 = MB_TASKMODAL, &H10000 = MB_SETFOREGROUND
+    MessageBoxW 0, StrPtr(text), StrPtr(title), flags Or &H2000 Or &H10000
+    Exit Sub
+Fallback:
+    MsgBox text, flags, title
+End Sub
+' --- WINAPI END -------------------------------------------------------
+
+' Muallif (Yordam oynasida ko'rsatiladi)
+Public Function KL_Author() As String
+    KL_Author = "Namangan " & ChrW(&H15F) & "ahar ta" & ChrW(&H2BC) & "lim b" & ChrW(&HF6) & _
+                "limi AKT mutaxassisi" & vbCrLf & "Dadaboyev Abdurahmon Abduqahhorovich"
+End Function
+
 Public Sub KL_ShowAbout()
-    MsgBox "Kirill-Lotin " & KL_VERSION & vbCrLf & vbCrLf & _
+    Dim t As String
+    t = "Kirill-Lotin " & KL_VERSION & vbCrLf & vbCrLf & _
         "O'zbek tilidagi matnni kirill alifbosidan lotin alifbosiga va aksincha o'giradi." & vbCrLf & vbCrLf & _
         "Foydalanish:" & vbCrLf & _
         "  1. Matnni (Word) yoki kataklarni (Excel) belgilang." & vbCrLf & _
@@ -125,14 +153,15 @@ Public Sub KL_ShowAbout()
         "  Alt+Shift+L  -  Kirill -> Lotin" & vbCrLf & _
         "  Alt+Shift+K  -  Lotin -> Kirill" & vbCrLf & vbCrLf & _
         "Excel formulalari:" & vbCrLf & _
-        "  =LOTINGA(A1)   =KIRILGA(A1)" & vbCrLf & vbCrLf & _
-        "Lotin alifbosi:" & vbCrLf & _
+        "  =LOTINGA(A1)   =KIRILGA(A1)" & vbCrLf & vbCrLf
+    t = t & "Lotin alifbosi:" & vbCrLf & _
         "  'Yangi alifbo' belgilangan (sukut bo'yicha): sh -> " & ChrW(&H15F) & ", ch -> " & ChrW(&HE7) & _
         ", g' -> " & ChrW(&H11F) & ", o' -> " & ChrW(&HF6) & vbCrLf & _
         "  Belgi olib tashlansa: eski alifbo (sh, ch, g" & ChrW(&H2BB) & ", o" & ChrW(&H2BB) & ")." & vbCrLf & _
         "  Eski alifboda 'Oddiy apostrof' belgilansa, o' va g' uchun oddiy ' ishlatiladi." & vbCrLf & _
-        "  Lotindan kirillga o'girishda ikkala yozuv ham tushuniladi.", _
-        vbInformation, KL_Title()
+        "  Lotindan kirillga o'girishda ikkala yozuv ham tushuniladi." & vbCrLf & vbCrLf
+    t = t & "Muallif:" & vbCrLf & KL_Author()
+    KL_UnicodeMsg t, KL_Title(), vbInformation
 End Sub
 
 ' O'rnatuvchi qo'shimcha ishlayotganini shu funksiya orqali tekshiradi

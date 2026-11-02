@@ -4,6 +4,8 @@ Microsoft **Word** va **Excel** uchun o'zbek tilidagi matnni **kirill alifbosida
 
 O'rnatilgach, Word va Excel har safar ochilganda qo'shimcha avtomatik yuklanadi va lentada **Kirill-Lotin** yorlig'i paydo bo'ladi.
 
+**Muallif:** Namangan şahar taʼlim bölimi AKT mutaxassisi Dadaboyev Abdurahmon Abduqahhorovich
+
 ## Imkoniyatlar
 
 | | Word | Excel |
